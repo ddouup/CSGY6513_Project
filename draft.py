@@ -1,3 +1,6 @@
+import pyspark.sql.types
+import pyspark.sql.functions
+import dateutil.parser
 datasets = spark.read.format('csv').options(inferschema='true', sep='\t').load(
     '/user/hm74/NYCOpenData/datasets.tsv').toDF('filename', 'title')
 
@@ -45,5 +48,15 @@ for filename, title in datasets.rdd.toLocalIterator():
         ],
     }
     dataset = spark.read.format('csv').options(header='true', inferschema='true', sep='\t').load(
-        '/user/hm74/NYCOpenData/{}.tsv.gz'.format(filename))
+        '/user/hm74/NYCOpenData/{}.tsv.gz'.format('7299-2etw'))
     print(filename.encode('utf-8'), title.encode('utf-8'))
+
+
+convert_to_date = pyspark.sql.functions.udf(
+        lambda x: x.Month,  pyspark.sql.types.DateType)
+def convertToDate(column):
+    dataset.withColumn('test', )
+    dateutil.parser.parse()
+
+ret = dataset.describe().collect()
+ret = dataset.select(dataset.xx).distinct().count()
