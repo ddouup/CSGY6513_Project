@@ -1,4 +1,6 @@
 from to_date_robust import to_date_robust
+from pyspark.sql import functions, types
+import json
 
 datasets = (spark.read.format('csv')
             .options(inferschema='true', sep='\t')
@@ -30,14 +32,53 @@ for filename, title in datasets.rdd.toLocalIterator():
             'number_empty_cells': 0,
             'number_distinct_values': 0,
             'frequent_values': [],
-            "data_types": [],
-            "semantic_types": [
-                {"semantic_type": '',  "count": 0},
+            'data_types': [],
+            'semantic_types': [
+                {'semantic_type': '',  'count': 0},
             ],
         }
-        column_output['column_name'] =name
-        column_output['number_non_empty_cells'] = None
-        column_output['number_empty_cells'] = None
-        column_output['number_distinct_values'] = None
-        column_output['frequent_values'] = None
+        column_output['column_name'] = name
+        column_output['number_non_empty_cells'] = dataset.filter(dataset[name].isNotNull()).count()
+        column_output['number_empty_cells'] = dataset.filter(dataset[name].isNull()).count()
+        column_output['number_distinct_values'] = dataset.select(dataset[name]).distinct().count()
+        column_output['frequent_values'] = [x[0] for x in (dataset.groupBy(dataset[name]).count()
+                                                           .orderBy(functions.desc('count'))
+                                                           .select(dataset[name])
+                                                           .limit(5).collect())]
+        if dataType is types.IntegerType or dataType is types.LongType:
+            data_output = {
+                "type": "INTEGER (LONG)",
+                "count": 0,
+                "max_value": 0,
+                "min_value": 0,
+                "mean": 0,
+                "stddev": 0,
+            }
+        elif dataType is types.DoubleType or dataType is types.FloatType:
+            data_output = {
+                "type": "REAL",
+                "count": 0,
+                "max_value": 0,
+                "min_value": 0,
+                "mean": 0,
+                "stddev": 0,
+            }
+        elif dataType is types.DateType or dataType is types.TimestampType:
+            data_output = {
+                "type": "DATE/TIME",
+                "count": 0,
+                "max_value": '',
+                "min_value": '',
+            }
+        elif dataType is types.StringType:
+            data_output = {
+                "type": "TEXT",
+                "count": 0,
+                "shortest_values": [],
+                "longest_values": [],
+                "average_length": 0,
+            }
+        else:
+            raise NotImplementedError
         output['columns'].append(column_output)
+    json.dump(output, open('{}.spec.json'.format(filename)))
