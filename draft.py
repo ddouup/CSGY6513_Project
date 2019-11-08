@@ -8,6 +8,11 @@ dataset = spark.read.format('csv').options(header='true', inferschema='true', se
     '/user/hm74/NYCOpenData/{}.tsv.gz'.format(filename))
 print(filename.encode('utf-8'), title.encode('utf-8'))
 
+number_non_empty_cells = dataset.select([count(c) for c in dataset.columns])
+number_empty_cells = dataset.select([count(when (col(c).isNull(), c)).alias(c) for c in dataset.columns])
+number_distinct_values = dataset.select([countDistinct(c).alias(c) for c in dataset.columns])
+frequent_values = [dataset.groupBy(c).count().orderBy(desc('count')).limit(5).select(c) for c in dataset.columns]
+
 
 def to_iso_string(x):
     try:
