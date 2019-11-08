@@ -1,8 +1,33 @@
-import pyspark.sql.types
-import pyspark.sql.functions
-import dateutil.parser
+from pyspark.sql import functions
+from dateutil import parser
 datasets = spark.read.format('csv').options(inferschema='true', sep='\t').load(
     '/user/hm74/NYCOpenData/datasets.tsv').toDF('filename', 'title')
+
+filename = '7299-2etw'
+dataset = spark.read.format('csv').options(header='true', inferschema='true', sep='\t').load(
+    '/user/hm74/NYCOpenData/{}.tsv.gz'.format(filename))
+print(filename.encode('utf-8'), title.encode('utf-8'))
+
+
+def to_iso_string(x):
+    try:
+        return parser.parse(x).isoformat()
+    except:
+        return None
+
+
+to_iso_string_udf = functions.udf(to_iso_string)
+
+
+def to_date_robust(x): return functions.to_date(to_iso_string_udf(x))
+
+
+dataset.select(to_date_robust(dataset['Day & Date'])).show()
+
+# to_date_robust
+
+ret = dataset.describe().collect()
+ret = dataset.select(dataset.xx).distinct().count()
 
 for filename, title in datasets.rdd.toLocalIterator():
     output = {'dataset_name': '', 'columns': [], 'key_column_candidates': []}
@@ -47,16 +72,3 @@ for filename, title in datasets.rdd.toLocalIterator():
             {"semantic_type": '',  "count": 0},
         ],
     }
-    dataset = spark.read.format('csv').options(header='true', inferschema='true', sep='\t').load(
-        '/user/hm74/NYCOpenData/{}.tsv.gz'.format('7299-2etw'))
-    print(filename.encode('utf-8'), title.encode('utf-8'))
-
-
-convert_to_date = pyspark.sql.functions.udf(
-        lambda x: x.Month,  pyspark.sql.types.DateType)
-def convertToDate(column):
-    dataset.withColumn('test', )
-    dateutil.parser.parse()
-
-ret = dataset.describe().collect()
-ret = dataset.select(dataset.xx).distinct().count()
