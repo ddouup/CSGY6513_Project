@@ -12,6 +12,33 @@ except NameError:
 
 ######################## Utils ########################
 
+def count_person_name(dataset):
+    ret = count
+
+def count_business_name(dataset):
+    ret = count
+
+def count_business_name(dataset):
+    ret = count
+
+def count_business_name(dataset):
+    ret = count
+
+def count_business_name(dataset):
+    ret = count
+
+def count_business_name(dataset):
+    ret = count
+
+def count_business_name(dataset):
+    ret = count
+
+def count_business_name(dataset):
+    ret = count
+
+def count_business_name(dataset):
+    ret = count
+
 with open('./cluster2.txt') as f:
     cluster = json.loads(f.read().replace("'", '"'))
 
@@ -24,3 +51,11 @@ for filename in cluster:
                .load('/user/hm74/NYCColumns/{}'.format(filename))
                .toDF('value', 'count'))
 
+    xxxx = foo(dataset)
+
+def foo(dataset):
+    if is_person_name() / num_rows > threshold:
+        person_name= True
+    if is_business_name() /  num_rows > threshold:
+        person_name= True
+    
