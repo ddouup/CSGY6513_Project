@@ -83,12 +83,12 @@ def profile_datatype(dataset, name):
                                                 .filter(data_str_length['_len'] == data_str_length.select(functions.min(data_str_length['_len'])).collect()[0][0])
                                                 .select(data_str_length[name])
                                                 .distinct()
-                                                .collect())]
+                                                .take(5))]
         ret['longest_values'] = [x for [x] in (data_str_length
                                                .filter(data_str_length['_len'] == data_str_length.select(functions.max(data_str_length['_len'])).collect()[0][0])
                                                .select(data_str_length[name])
                                                .distinct()
-                                               .collect())]
+                                               .take(5))]
         ret['average_length'] = data_str_length.select(functions.mean(data_str_length['_len'])).collect()[0][0]
     else:
         raise NotImplementedError
