@@ -82,10 +82,12 @@ def profile_datatype(dataset, name):
         ret['shortest_values'] = [x for [x] in (data_str_length
                                                 .filter(data_str_length['_len'] == data_str_length.select(functions.min(data_str_length['_len'])).collect()[0][0])
                                                 .select(data_str_length[name])
+                                                .distinct()
                                                 .collect())]
         ret['longest_values'] = [x for [x] in (data_str_length
                                                .filter(data_str_length['_len'] == data_str_length.select(functions.max(data_str_length['_len'])).collect()[0][0])
                                                .select(data_str_length[name])
+                                               .distinct()
                                                .collect())]
         ret['average_length'] = data_str_length.select(functions.mean(data_str_length['_len'])).collect()[0][0]
     else:
@@ -100,8 +102,7 @@ datasets = (spark.read.format('csv')
             .toDF('filename', 'title'))
 
 # 2. for each dataset
-# for filename, title in datasets.toLocalIterator():
-for filename, title in datasets.take(2):
+for filename, title in datasets.toLocalIterator():
     # filename, title = next(datasets.toLocalIterator())
     print('>> entering {}.tsv.gz: {}'.format(filename, title).encode('utf-8'))
 
