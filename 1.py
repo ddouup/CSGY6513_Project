@@ -165,4 +165,5 @@ for filename, title in datasets.toLocalIterator():
         output['columns'].append(column_output)
 
     # 2.4 dump dataset profile as json
-    json.dump(output, open('{}.spec.json'.format(filename), 'w'), indent=2)
+    with open('{}.spec.json'.format(filename), 'w') as f:
+        json.dump(output, f, indent=2)
