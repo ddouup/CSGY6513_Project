@@ -21,7 +21,9 @@ def count_business_name(dataset):
 
 
 def count_phone_number(dataset):
-    ret = count
+    phone_regex = re.compile('(\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4})')
+    count = dataset.rdd.map(lambda x: (x[0], x[1]) if phone_regex.search(x[0]) else (x[0], 0)).values().sum()
+    return count
 
 
 def count_address(dataset):
@@ -41,11 +43,15 @@ def count_neighborhood(dataset):
 
 
 def count_coordinates(dataset):
-    ret = count
+    coordinate_regex = re.compile('(\((-)?\d+(.+)?,( *)?(-)?\d+(.+)?\))')
+    count = dataset.rdd.map(lambda x: (x[0], x[1]) if coordinate_regex.search(x[0]) else (x[0], 0)).values().sum()
+    return count
 
 
 def count_zip(dataset):
-    ret = count
+    zip_regex = re.compile('^[0-9]{5}([- /]?[0-9]{4})?$')
+    count = dataset.rdd.map(lambda x: (x[0], x[1]) if zip_regex.search(x[0]) else (x[0], 0)).values().sum()
+    return count
 
 
 def count_borough(dataset):
@@ -76,12 +82,18 @@ def count_subjects_in_school(dataset):
     ret = count
 
 
+def count_school_levels(dataset):
+    ret = count
+
+
 def count_university_names(dataset):
     ret = count
 
 
 def count_websites(dataset):
-    ret = count
+    web_regex = re.compile('(https?:\/\/)?(www\.)?([a-zA-Z0-9]+(-?[a-zA-Z0-9])*\.)+[\w]{2,}(\/\S*)?')
+    count = dataset.rdd.map(lambda x: (x[0], x[1]) if web_regex.search(x[0]) else (x[0], 0)).values().sum()
+    return count
 
 
 def count_building_classification(dataset):
