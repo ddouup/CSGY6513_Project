@@ -177,6 +177,8 @@ for filename in cluster:
             # 2.4 create column semantic profile
             column['semantic_types'] = profile_semantic(dataset)
             break
+    else:
+        raise ValueError
 
     # 2.5 dump updated dataset profile as json
     with open('{}.spec.json'.format(dataset_name), 'w') as f:

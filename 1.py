@@ -129,9 +129,7 @@ for filename, title in datasets.toLocalIterator():
             'number_distinct_values': 0,
             'frequent_values': [],
             'data_types': [],
-            'semantic_types': [
-                {'semantic_type': '',  'count': 0},
-            ],
+            'semantic_types': [],
         }
         column_output['column_name'] = name
         column_output['number_non_empty_cells'] = dataset.filter(dataset[name].isNotNull()).count()
