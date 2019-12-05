@@ -2,14 +2,14 @@ import json
 
 from dateutil import parser
 from pyspark import SparkContext
-from pyspark.sql import SparkSession, functions, types
-from matplotlib.colors import is_color_like
+from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
+from pyspark.sql import types as T
 
 try:
     spark
 except NameError:
     spark = SparkSession.builder.appName("proj").getOrCreate()
-
 
 ######################## Utils ########################
 
@@ -205,7 +205,15 @@ with open('./cluster2.txt') as f:
 # 2. for each working dataset
 for filename in cluster:
     # filename = cluster[0]
-    print(u'>> entering {}'.format(filename).encode('utf-8'))
+    [dataset_name, column_name] = filename.split('.').slice(2)
+    print(u'>> entering {}.{}'.format(dataset_name, column_name))
+    try:
+        with open('task2.{}.{}.json'.format(dataset_name, column_name)) as f:
+            json.load(f)
+            print(u'>> skipping {}.{}'.format(dataset_name, column_name))
+            continue
+    except:
+        pass
 
     # 2.1 load dataset
     dataset = (spark.read.format('csv')
@@ -214,17 +222,19 @@ for filename in cluster:
                .toDF('value', 'count'))
 
     # 2.2 load the corresponding dataset profile
-    [dataset_name, column_name] = filename.split('.').slice(2)
-    with open('{}.spec.json'.format(dataset_name), 'r') as f:
-        dataset_profile = json.load(f)
+    try:
+        with open('task1.{}.json'.format(dataset_name), 'r') as f:
+            dataset_profile = json.load(f)
 
-    # 2.3 load the corresponing column profile
-    for column in dataset_profile['columns']:
-        if column['column_name'] == column_name:
-            column_profile = profile_semantic(dataset)
-            break
-    else:
-        raise ValueError
+        # 2.3 load the corresponing column profile
+        for entry in dataset_profile['columns']:
+            if entry['column_name'] == column_name:
+                column_profile = entry
+                break
+        else:
+            raise ValueError
+    except:
+        pass
 
     # 2.4 create column semantic profile
     output = {
@@ -233,5 +243,5 @@ for filename in cluster:
     }
 
     # 2.5 dump updated dataset profile as json
-    with open('task2.{}.json'.format(filename), 'w') as f:
+    with open('task2.{}.{}.json'.format(dataset_name, column_name), 'w') as f:
         json.dump(output, f, indent=2)

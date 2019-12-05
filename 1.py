@@ -1,4 +1,5 @@
 import json
+import datetime
 
 from dateutil import parser
 from pyspark import SparkContext
@@ -27,6 +28,13 @@ to_iso_string_udf = F.udf(to_iso_string)
 def to_date_robust(x):
     '''converts a string column to date column with best effort'''
     return F.to_date(to_iso_string_udf(x))
+
+
+class DateTimeEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, datetime):
+            return o.isoformat()
+        return super().default(o)
 
 ######################## Main ########################
 
@@ -74,8 +82,8 @@ def profile_datatype(dataset, name):
         ret = {
             "type": "DATE/TIME",
             "count": select[0],
-            "max_value": str(select[1]),
-            "min_value": str(select[2]),
+            "max_value": select[1],
+            "min_value": select[2],
         }
     elif isinstance(dataType, T.StringType):
         data_str_length = dataset.select(dataset[name], F.length(dataset[name]).alias('_len'))
@@ -101,6 +109,13 @@ datasets = (spark.read.format('csv')
 for filename, title in datasets.toLocalIterator():
     # filename, title = next(datasets.toLocalIterator())
     print(u'>> entering {}.tsv.gz: {}'.format(filename, title))
+    try:
+        with open('task1.{}.json'.format(filename)) as f:
+            json.load(f)
+            print(u'>> skipping {}.tsv.gz: {}'.format(filename, title))
+            continue
+    except:
+        pass
 
     # 2.1 load dataset
     dataset = (spark.read.format('csv')
@@ -182,4 +197,4 @@ for filename, title in datasets.toLocalIterator():
 
     # 2.6 dump dataset profile as json
     with open('task1.{}.json'.format(filename), 'w') as f:
-        json.dump(output, f, indent=2)
+        json.dump(output, f, indent=2, cls=DateTimeEncoder)
