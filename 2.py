@@ -3,6 +3,7 @@ import json
 from dateutil import parser
 from pyspark import SparkContext
 from pyspark.sql import SparkSession, functions, types
+from matplotlib.colors import is_color_like
 
 try:
     spark
@@ -35,8 +36,10 @@ def count_street_name(dataset):
 
 
 def count_city(dataset):
-    ret = count
-
+    # https://data.ny.gov/Government-Finance/New-York-State-Locality-Hierarchy-with-Websites/55k6-h6qq/data
+    cities = []
+    count = dataset.rdd.map(lambda x: (x[0], x[1]) if x[0] in cities else (x[0], 0)).values().sum()
+    return count
 
 def count_neighborhood(dataset):
     ret = count
@@ -54,16 +57,22 @@ def count_zip(dataset):
     return count
 
 
-def count_borough(dataset):
-    ret = count
+def count_borough(dataset): # 0.92
+    boro = ['K', 'M', 'Q', 'R', 'X']
+    borough = ['BRONX', 'BROOKLYN', 'MANHATTAN', 'QUEENS', 'STATEN ISLAND']
+    count = dataset.rdd.map(lambda x: (x[0], x[1]) if (x[0].upper() in boro or x[0].upper() in borough) else (x[0], 0)).values().sum()
+    return count
 
 
 def count_school_name(dataset):
     ret = count
 
 
-def count_color(dataset):
-    ret = count
+def count_color(dataset):   # 0.7
+    # https://www.ul.com/resources/color-codes-and-abbreviations-plastics-recognition
+    color_list = ['AL','AM','AO','AT','BG','BK','BL','BN','BZ','CH','CL','CT','DK','GD','GN','GT','GY','IV','LT','NC','OL','OP','OR','PK','RD','SM','TL','TN','TP','VT','WT','YL']
+    count = dataset.rdd.map(lambda x: (x[0], x[1]) if (is_color_like(x[0]) or x[0] in color_list) else (x[0], 0)).values().sum()
+    return count
 
 
 def count_car_make(dataset):
@@ -83,7 +92,16 @@ def count_subjects_in_school(dataset):
 
 
 def count_school_levels(dataset):
-    ret = count
+    school_levels = ['ELEMENTARY SCHOOL', 'TRANSFER SCHOOL', 'HIGH SCHOOL TRANSFER', 'TRANSFER HIGH SCHOOL', 'MIDDLE SCHOOL', \
+                    'K-2 SCHOOL', 'K-3 SCHOOL', 'K-8 SCHOOL', 'YABC', 'D75']
+    def check(level):
+        result = [i for i in school_levels if level in i]
+        if len(result) > 0:
+            return True
+        else:
+            return False
+    count = dataset.rdd.map(lambda x: (x[0], x[1]) if check(x[0].upper()) else (x[0], 0)).values().sum()
+    return count
 
 
 def count_university_names(dataset):
