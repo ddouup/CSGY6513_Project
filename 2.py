@@ -41,6 +41,7 @@ def count_city(dataset):
     count = dataset.rdd.map(lambda x: (x[0], x[1]) if x[0] in cities else (x[0], 0)).values().sum()
     return count
 
+
 def count_neighborhood(dataset):
     ret = count
 
@@ -57,7 +58,7 @@ def count_zip(dataset):
     return count
 
 
-def count_borough(dataset): # 0.92
+def count_borough(dataset):  # 0.92
     boro = ['K', 'M', 'Q', 'R', 'X']
     borough = ['BRONX', 'BROOKLYN', 'MANHATTAN', 'QUEENS', 'STATEN ISLAND']
     count = dataset.rdd.map(lambda x: (x[0], x[1]) if (x[0].upper() in boro or x[0].upper() in borough) else (x[0], 0)).values().sum()
@@ -70,7 +71,7 @@ def count_school_name(dataset):
 
 def count_color(dataset):   # 0.7
     # https://www.ul.com/resources/color-codes-and-abbreviations-plastics-recognition
-    color_list = ['AL','AM','AO','AT','BG','BK','BL','BN','BZ','CH','CL','CT','DK','GD','GN','GT','GY','IV','LT','NC','OL','OP','OR','PK','RD','SM','TL','TN','TP','VT','WT','YL']
+    color_list = ['AL', 'AM', 'AO', 'AT', 'BG', 'BK', 'BL', 'BN', 'BZ', 'CH', 'CL', 'CT', 'DK', 'GD', 'GN', 'GT', 'GY', 'IV', 'LT', 'NC', 'OL', 'OP', 'OR', 'PK', 'RD', 'SM', 'TL', 'TN', 'TP', 'VT', 'WT', 'YL']
     count = dataset.rdd.map(lambda x: (x[0], x[1]) if (is_color_like(x[0]) or x[0] in color_list) else (x[0], 0)).values().sum()
     return count
 
@@ -92,8 +93,9 @@ def count_subjects_in_school(dataset):
 
 
 def count_school_levels(dataset):
-    school_levels = ['ELEMENTARY SCHOOL', 'TRANSFER SCHOOL', 'HIGH SCHOOL TRANSFER', 'TRANSFER HIGH SCHOOL', 'MIDDLE SCHOOL', \
-                    'K-2 SCHOOL', 'K-3 SCHOOL', 'K-8 SCHOOL', 'YABC', 'D75']
+    school_levels = ['ELEMENTARY SCHOOL', 'TRANSFER SCHOOL', 'HIGH SCHOOL TRANSFER', 'TRANSFER HIGH SCHOOL', 'MIDDLE SCHOOL',
+                     'K-2 SCHOOL', 'K-3 SCHOOL', 'K-8 SCHOOL', 'YABC', 'D75']
+
     def check(level):
         result = [i for i in school_levels if level in i]
         if len(result) > 0:
@@ -162,8 +164,8 @@ def profile_semantic(dataset):
     confirm_threshold = 0.95 * dataset.count()
     ret = []
     for semantic_type in semantic_types:
-        count = semantic_types[semantic_type](dataset)
-        ret.append({'semantic_type': semantic_type, 'count': count})
+        label, count = semantic_types[semantic_type](dataset)
+        ret.append({'semantic_type': semantic_type, 'label': label, 'count': count})
         if count > confirm_threshold:
             break
     return ret
@@ -176,7 +178,7 @@ with open('./cluster2.txt') as f:
 # 2. for each working dataset
 for filename in cluster:
     # filename = cluster[0]
-    print('>> entering {}'.format(filename).encode('utf-8'))
+    print(u'>> entering {}'.format(filename).encode('utf-8'))
 
     # 2.1 load dataset
     dataset = (spark.read.format('csv')
@@ -187,17 +189,22 @@ for filename in cluster:
     # 2.2 load the corresponding dataset profile
     [dataset_name, column_name] = filename.split('.').slice(2)
     with open('{}.spec.json'.format(dataset_name), 'r') as f:
-        output = json.load(f)
+        dataset_profile = json.load(f)
 
     # 2.3 load the corresponing column profile
-    for column in output['columns']:
+    for column in dataset_profile['columns']:
         if column['column_name'] == column_name:
-            # 2.4 create column semantic profile
-            column['semantic_types'] = profile_semantic(dataset)
+            column_profile = profile_semantic(dataset)
             break
     else:
         raise ValueError
 
+    # 2.4 create column semantic profile
+    output = {
+        'column_name': column_name,
+        'semantic_types': profile_semantic(dataset)
+    }
+
     # 2.5 dump updated dataset profile as json
-    with open('{}.spec.json'.format(dataset_name), 'w') as f:
+    with open('task2.{}.json'.format(filename), 'w') as f:
         json.dump(output, f, indent=2)

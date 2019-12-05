@@ -2,7 +2,9 @@ import json
 
 from dateutil import parser
 from pyspark import SparkContext
-from pyspark.sql import SparkSession, functions, types
+from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
+from pyspark.sql import types as T
 
 try:
     spark
@@ -19,77 +21,71 @@ def to_iso_string(x):
         return None
 
 
-to_iso_string_udf = functions.udf(to_iso_string)
+to_iso_string_udf = F.udf(to_iso_string)
 
 
 def to_date_robust(x):
     '''converts a string column to date column with best effort'''
-    return functions.to_date(to_iso_string_udf(x))
+    return F.to_date(to_iso_string_udf(x))
 
 ######################## Main ########################
 
 
 def profile_datatype(dataset, name):
     dataType = dataset.schema[name].dataType
-    if isinstance(dataType, types.IntegerType) or isinstance(dataType, types.LongType):
+    if isinstance(dataType, T.IntegerType) or isinstance(dataType, T.LongType):
+        select = dataset.select(
+            F.count(name),
+            F.min(name),
+            F.max(name),
+            F.mean(name),
+            F.stddev(name),
+        ).collect()[0]
         ret = {
             "type": "INTEGER (LONG)",
-            "count": 0,
-            "max_value": 0,
-            "min_value": 0,
-            "mean": 0,
-            "stddev": 0,
+            "count": select[0],
+            "max_value": select[1],
+            "min_value": select[2],
+            "mean": select[3],
+            "stddev": select[4],
         }
-        ret['count'] = dataset.select(dataset[name]).count()
-        ret['min_value'] = dataset.select(functions.min(dataset[name])).collect()[0][0]
-        ret['max_value'] = dataset.select(functions.max(dataset[name])).collect()[0][0]
-        ret['mean'] = dataset.select(functions.mean(dataset[name])).collect()[0][0]
-        ret['stddev'] = dataset.select(functions.stddev(dataset[name])).collect()[0][0]
-    elif isinstance(dataType, types.DoubleType) or isinstance(dataType, types.FloatType):
+    elif isinstance(dataType, T.DoubleType) or isinstance(dataType, T.FloatType):
+        select = dataset.select(
+            F.count(name),
+            F.min(name),
+            F.max(name),
+            F.mean(name),
+            F.stddev(name),
+        ).collect()[0]
         ret = {
             "type": "REAL",
-            "count": 0,
-            "max_value": 0,
-            "min_value": 0,
-            "mean": 0,
-            "stddev": 0,
+            "count": select[0],
+            "max_value": select[1],
+            "min_value": select[2],
+            "mean": select[3],
+            "stddev": select[4],
         }
-        ret['count'] = dataset.select(dataset[name]).count()
-        ret['min_value'] = dataset.select(functions.min(dataset[name])).collect()[0][0]
-        ret['max_value'] = dataset.select(functions.max(dataset[name])).collect()[0][0]
-        ret['mean'] = dataset.select(functions.mean(dataset[name])).collect()[0][0]
-        ret['stddev'] = dataset.select(functions.stddev(dataset[name])).collect()[0][0]
-    elif isinstance(dataType, types.DateType) or isinstance(dataType, types.TimestampType):
+    elif isinstance(dataType, T.DateType) or isinstance(dataType, T.TimestampType):
+        select = dataset.select(
+            F.count(name),
+            F.min(name),
+            F.max(name),
+        ).collect()[0]
         ret = {
             "type": "DATE/TIME",
-            "count": 0,
-            "max_value": '',
-            "min_value": '',
+            "count": select[0],
+            "max_value": str(select[1]),
+            "min_value": str(select[2]),
         }
-        ret['count'] = dataset.select(dataset[name]).count()
-        ret['min_value'] = str(dataset.select(functions.min(dataset[name])).collect()[0][0])
-        ret['max_value'] = str(dataset.select(functions.max(dataset[name])).collect()[0][0])
-    elif isinstance(dataType, types.StringType):
+    elif isinstance(dataType, T.StringType):
+        data_str_length = dataset.select(dataset[name], F.length(dataset[name]).alias('_len'))
         ret = {
             "type": "TEXT",
-            "count": 0,
-            "shortest_values": [],
-            "longest_values": [],
-            "average_length": 0,
+            "count": dataset.select(dataset[name]).count(),
+            "shortest_values": [x for [x] in (data_str_length.orderBy(F.asc('_len')).select(name).take(5))],
+            "longest_values": [x for [x] in (data_str_length.orderBy(F.desc('_len')).select(name).take(5))],
+            "average_length": data_str_length.select(F.mean(data_str_length['_len'])).collect()[0][0],
         }
-        data_str_length = dataset.select(dataset[name], functions.length(dataset[name]).alias('_len'))
-        ret['count'] = dataset.select(dataset[name]).count()
-        ret['shortest_values'] = [x for [x] in (data_str_length
-                                                .filter(data_str_length['_len'] == data_str_length.select(functions.min(data_str_length['_len'])).collect()[0][0])
-                                                .select(data_str_length[name])
-                                                .distinct()
-                                                .take(5))]
-        ret['longest_values'] = [x for [x] in (data_str_length
-                                               .filter(data_str_length['_len'] == data_str_length.select(functions.max(data_str_length['_len'])).collect()[0][0])
-                                               .select(data_str_length[name])
-                                               .distinct()
-                                               .take(5))]
-        ret['average_length'] = data_str_length.select(functions.mean(data_str_length['_len'])).collect()[0][0]
     else:
         raise NotImplementedError
     return ret
@@ -104,64 +100,86 @@ datasets = (spark.read.format('csv')
 # 2. for each dataset
 for filename, title in datasets.toLocalIterator():
     # filename, title = next(datasets.toLocalIterator())
-    print('>> entering {}.tsv.gz: {}'.format(filename, title).encode('utf-8'))
+    print(u'>> entering {}.tsv.gz: {}'.format(filename, title))
 
     # 2.1 load dataset
     dataset = (spark.read.format('csv')
                .options(header='true', inferschema='true', sep='\t')
                .load('/user/hm74/NYCOpenData/{}.tsv.gz'.format(filename)))
 
-    # 2.2 create dataset profile
-    output = {'dataset_name': '', 'columns': [], 'key_column_candidates': []}
-    output['dataset_name'] = filename
+    # 2.2 count dataset rows
+    dataset_count = dataset.count()
 
-    # 2.3 for each column
-    for column in dataset.schema:
-        # schema = iter(dataset.schema)
-        # column = next(schema)
+    # 2.3 create dataset profile
+    output = {'dataset_name': filename, 'columns': [], 'key_column_candidates': []}
 
-        # 2.3.1 create column profile
+    # 2.4 batch compute simple column profiles
+    # 2.4.1 batch select at once
+    batch_select = dataset.select([
+        item for name in dataset.columns for item in (
+            F.count(F.when(~F.isnull(name), name)),
+            F.count(F.when(F.isnull(name), name)),
+            F.countDistinct(name),
+        )
+    ]).collect()[0]
+    # 2.4.2 group result by chunk of size 3
+    batch_select_chunked = (batch_select[i:i+3] for i in range(0, len(batch_select), 3))
+
+    # 2.5 create column profiles
+    for column, select in zip(dataset.schema, batch_select_chunked):
+        # column, select = next(zip(dataset.schema, batch_select_chunked))
         name = column.name
+        dataType = column.dataType
+
+        # 2.5.1 use batch select
         column_output = {
-            'column_name': '',
-            'number_non_empty_cells': 0,
-            'number_empty_cells': 0,
-            'number_distinct_values': 0,
-            'frequent_values': [],
+            'column_name': name,
+            'number_non_empty_cells': select[0],
+            'number_empty_cells': select[1],
+            'number_distinct_values': select[2],
+            'frequent_values': None,
             'data_types': [],
             'semantic_types': [],
         }
-        column_output['column_name'] = name
-        column_output['number_non_empty_cells'] = dataset.filter(dataset[name].isNotNull()).count()
-        column_output['number_empty_cells'] = dataset.filter(dataset[name].isNull()).count()
-        column_output['number_distinct_values'] = dataset.select(dataset[name]).distinct().count()
-        column_output['frequent_values'] = [x for [x] in (dataset.groupBy(dataset[name]).count()
-                                                          .orderBy(functions.desc('count'))
-                                                          .select(dataset[name])
+        assert column_output['number_non_empty_cells'] + column_output['number_empty_cells'] == dataset_count
+        assert column_output['number_distinct_values'] <= dataset_count
+
+        # 2.5.2 fill frequent_values
+        column_output['frequent_values'] = [x for [x] in (dataset.groupBy(name).count()
+                                                          .orderBy(F.desc('count'))
+                                                          .select(name)
                                                           .take(5))]
 
-        # 2.3.2 create datatype profile
-        column_output['data_types'] = [profile_datatype(dataset, name)]
+        # 2.5.3 default datatype => fill data_types
+        column_output['data_types'].append(profile_datatype(dataset, name))
 
-        # 2.3.3 datatype indefinite => try other types
-        if isinstance(column.dataType, types.StringType):
-            cast = dataset.select(dataset[name].cast(types.LongType()).alias(name))
-            if cast.filter(cast[name].isNotNull()).count():
-                column_output['data_types'].append(profile_datatype(cast, name))
-            cast = dataset.select(dataset[name].cast(types.DoubleType()).alias(name))
-            if cast.filter(cast[name].isNotNull()).count():
-                column_output['data_types'].append(profile_datatype(cast, name))
-            cast = dataset.select(to_date_robust(dataset[name]).alias(name))
-            if cast.filter(cast[name].isNotNull()).count():
-                column_output['data_types'].append(profile_datatype(cast, name))
+        # 2.5.4 datatype indefinite => try others
+        if isinstance(dataType, T.StringType):
+            cast_dataset = dataset.select(
+                dataset[name].cast(T.LongType()).alias('_integer'),
+                dataset[name].cast(T.DoubleType()).alias('_double'),
+                to_date_robust(dataset[name]).alias('_date'),
+            )
+            cast_select = cast_dataset.select([
+                F.count(F.when(~F.isnull('_integer'), '_integer')),
+                F.count(F.when(~F.isnull('_double'), '_double')),
+                F.count(F.when(~F.isnull('_date'), '_date')),
+            ]).collect()[0]
 
-        # 2.3.4 all distinct => key candidate
+            if cast_select[0]:
+                column_output['data_types'].append(profile_datatype(cast_dataset, '_integer'))
+            if cast_select[1]:
+                column_output['data_types'].append(profile_datatype(cast_dataset, '_double'))
+            if cast_select[2] > 0.6 * dataset.count():
+                column_output['data_types'].append(profile_datatype(cast_dataset, '_date'))
+
+        # 2.5.5 all distinct => key candidate
         if column_output['number_distinct_values'] == dataset.count():
             output['key_column_candidates'].append(name)
 
-        # 2.3.5 add column to output
+        # 2.5.6 add column to output
         output['columns'].append(column_output)
 
-    # 2.4 dump dataset profile as json
-    with open('{}.spec.json'.format(filename), 'w') as f:
+    # 2.6 dump dataset profile as json
+    with open('task1.{}.json'.format(filename), 'w') as f:
         json.dump(output, f, indent=2)
