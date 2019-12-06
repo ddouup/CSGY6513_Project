@@ -1,5 +1,5 @@
-import json
 import csv
+import json
 
 from dateutil import parser
 from pyspark import SparkContext
@@ -11,6 +11,12 @@ try:
     spark
 except NameError:
     spark = SparkSession.builder.appName("proj").getOrCreate()
+
+
+######################## Util ########################
+
+def filter_ground_truth(semantic_type):
+    return {k: v for [k, v] in ground_truth.items() if semantic_type in v}
 
 
 ######################## Main ########################
@@ -47,8 +53,15 @@ truth_postive = {semantic_type: 0 for semantic_type in semantic_types_threshold}
 # 1. list the working subset
 with open('./cluster2.txt') as f:
     cluster = json.loads(f.read().replace("'", '"'))
+
 with open('./DF_Label.csv') as f:
-    ground_truth = {filename: {*labels} for [filename, *labels] in csv.reader(f)}
+    ground_truth = {
+        filename: {
+            semantic_type
+            for semantic_type in labels if semantic_type is not ''
+        }
+        for [filename, *labels] in csv.reader(f)
+    }
 
 # 2. for each working dataset
 for filename in cluster:
@@ -79,11 +92,11 @@ for filename in cluster:
 
     # 2.5 evaluate
     for semantic_type in labels:
-        predict_postive[semantic_type]+=1
+        predict_postive[semantic_type] += 1
         if semantic_type in ground_truth[filename]:
-            correct_postive[semantic_type]+=1
+            correct_postive[semantic_type] += 1
     for semantic_type in ground_truth[filename]:
-        truth_postive[semantic_type]+=1
+        truth_postive[semantic_type] += 1
 
 json.dumps(correct_postive)
 json.dumps(predict_postive)

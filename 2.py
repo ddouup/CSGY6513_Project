@@ -14,6 +14,7 @@ except NameError:
 
 ######################## Utils ########################
 
+
 def count_person_name(dataset):
     ret = count
 
@@ -28,12 +29,34 @@ def count_phone_number(dataset):
     return count
 
 
-def count_address(dataset):
-    ret = count
+street_noun_regex = re.compile(r'\W*(?:STREET|AVENUE|ST|PLACE|AVE|ROAD|COURT|LANE|DRIVE|PARK|BOULEVARD|RD|BLVD|PARKWAY|PL|TERRACE|EXIT|LOOP|EXPRESSWAY|PKWY|PLAZA|BRIDGE|EN|ENTRANCE|DR|ET|BROADWAY|FLOOR|added_by_us|TUNNEL|ROUTE|CIRCLE|WAY|SQUARE|XPWY|EXPY|CRCL|WALK|PKW|CONCOURSE|BOARDWALK|FREEWAY|CHANNEL)\W*$')
+door_number_regex = re.compile(r'\d+')
 
 
-def count_street_name(dataset):
-    ret = count
+def is_address(data):
+    if not data:
+        return None
+    split = [word for word in data.split(' ') if word]
+    for street_noun_index in range(len(split)):
+        if street_noun_regex.match(split[street_noun_index]):
+            break
+    else:
+        return None
+    for door_number_index in range(street_noun_index - 1):
+        if door_number_regex.search(split[door_number_index]):
+            return True
+    return False
+
+
+is_address_udf = F.udf(is_address, T.BooleanType())
+
+
+def count_address(dataset):  # 0.86531622832036702147027053269088
+    return dataset.select(F.count(F.when(is_address_udf('value'), 1))).collect()[0][0]
+
+
+def count_street_name(dataset):  # 0.81533175864290315653854412712046
+    return dataset.select(F.count(F.when(~is_address_udf('value'), 1))).collect()[0][0]
 
 
 def count_city(dataset):    # most > 0.7, 0.6 x1, 0.5x1, 0.3x1
@@ -224,7 +247,7 @@ with open('./cluster2.txt') as f:
 # 2. for each working dataset
 for filename in cluster:
     # filename = cluster[0]
-    [dataset_name, column_name] = filename.split('.').slice(2)
+    [dataset_name, column_name] = filename.split('.')[0:2]
     print(u'>> entering {}.{}'.format(dataset_name, column_name))
     try:
         with open('task2.{}.{}.json'.format(dataset_name, column_name)) as f:
