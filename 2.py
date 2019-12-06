@@ -1,4 +1,5 @@
 import json
+import re
 
 from dateutil import parser
 from pyspark import SparkContext
@@ -49,6 +50,7 @@ def count_city(dataset):    # most > 0.7, 0.6 x1, 0.5x1, 0.3x1
 
 
 def count_neighborhood(dataset):    # most > 0.9, 0.8 x2
+    # https://en.wikipedia.org/wiki/Neighborhoods_in_New_York_City    
     neighborhoods = ['melrose', 'mott haven', 'port morris', 'hunts point', 'longwood', 'claremont', 'concourse village', 'crotona park', 'morrisania', 'concourse', 'highbridge', 'fordham', 'morris heights', 'mount hope', 'university heights', 'bathgate', 'belmont', 'east tremont', 'west farms', 'bedford park', 'norwood', 'university heights', 'fieldston', 'kingsbridge', 'kingsbridge heights', 'marble hill', 'riverdale', 'spuyten duyvil', 'van cortlandt village', 'bronx river', 'bruckner', 'castle hill', 'clason point', 'harding park', 'parkchester', 'soundview', 'unionport', 'city island', 'co-op city', 'locust point', 'pelham bay', 'silver beach', 'throgs neck', 'westchester square', 'allerton', 'bronxdale', 'indian village', 'laconia', 'morris park', 'pelham gardens', 'pelham parkway', 'van nest', 'baychester', 'edenwald', 'eastchester', 'fish bay', 'olinville', 'wakefield', 'williamsbridge', 'woodlawn', 'greenpoint', 'williamsburg', 'boerum hill', 'brooklyn heights', 'brooklyn navy yard', 'clinton hill', 'dumbo', 'fort greene', 'fulton ferry', 'fulton mall', 'vinegar hill', 'bedford-stuyvesant', 'ocean hill', 'stuyvesant heights', 'bushwick', 'city line', 'cypress hills', 'east new york', 'highland park', 'new lots', 'starrett city', 'carroll gardens', 'cobble hill', 'gowanus', 'park slope', 'red hook', 'greenwood heights', 'sunset park', 'windsor terrace', 'crown heights', 'prospect heights', 'weeksville', 'crown heights', 'prospect lefferts gardens', 'wingate', 'bay ridge', 'dyker heights', 'fort hamilton', 'bath beach', 'bensonhurst', 'gravesend', 'mapleton', 'borough park', 'kensington', 'midwood', 'ocean parkway', 'bensonhurst', 'brighton beach', 'coney island', 'gravesend', 'sea gate', 'flatbush', 'kensington', 'midwood', 'ocean parkway', 'east gravesend', 'gerritsen beach', 'homecrest', 'kings bay', 'kings highway', 'madison', 'manhattan beach', 'plum beach', 'sheepshead bay', 'brownsville', 'ocean hill', 'ditmas village', 'east flatbush', 'erasmus', 'farragut', 'remsen village', 'rugby', 'bergen beach', 'canarsie', 'flatlands', 'georgetown', 'marine park', 'mill basin', 'mill island', 'battery park city', 'financial district', 'tribeca', 'chinatown', 'greenwich village', 'little italy', 'lower east side', 'noho', 'soho', 'west village', 'alphabet city', 'chinatown', 'east village', 'lower east side', 'two bridges', 'chelsea', 'clinton', 'hudson yards', 'midtown', 'gramercy park', 'kips bay', 'rose hill', 'murray hill', 'peter cooper village', 'stuyvesant town', 'sutton place', 'tudor city', 'turtle bay', 'waterside plaza', 'lincoln square', 'manhattan valley', 'upper west side', 'lenox hill', 'roosevelt island', 'upper east side', 'yorkville', 'hamilton heights', 'manhattanville', 'morningside heights', 'harlem', 'polo grounds', 'east harlem', "randall's island", 'spanish harlem', 'wards island', 'inwood', 'washington heights', 'astoria', 'ditmars', 'garden bay', 'long island city', 'old astoria', 'queensbridge', 'ravenswood', 'steinway', 'woodside', 'hunters point', 'long island city', 'sunnyside', 'woodside', 'east elmhurst', 'jackson heights', 'north corona', 'corona', 'elmhurst', 'fresh pond', 'glendale', 'maspeth', 'middle village', 'liberty park', 'ridgewood', 'forest hills', 'rego park', 'bay terrace', 'beechhurst', 'college point', 'flushing', 'linden hill', 'malba', 'queensboro hill', 'whitestone', 'willets point', 'briarwood', 'cunningham heights', 'flushing south', 'fresh meadows', 'hilltop village', 'holliswood', 'jamaica estates', 'kew gardens hills', 'pomonok houses', 'utopia', 'kew gardens', 'ozone park', 'richmond hill', 'woodhaven', 'howard beach', 'lindenwood', 'richmond hill', 'south ozone park', 'tudor village', 'auburndale', 'bayside', 'douglaston', 'east flushing', 'hollis hills', 'little neck', 'oakland gardens', 'baisley park', 'jamaica', 'hollis', 'rochdale village', 'st. albans', 'south jamaica', 'springfield gardens', 'bellerose', 'brookville', 'cambria heights', 'floral park', 'glen oaks', 'laurelton', 'meadowmere', 'new hyde park', 'queens village', 'rosedale', 'arverne', 'bayswater', 'belle harbor', 'breezy point', 'edgemere', 'far rockaway', 'neponsit', 'rockaway park', 'arlington', 'castleton corners', 'clifton', 'concord', 'elm park', 'fort wadsworth', 'graniteville', 'grymes hill', 'livingston', 'mariners harbor', 'meiers corners', 'new brighton', 'port ivory', 'port richmond', 'randall manor', 'rosebank', 'st. george', 'shore acres', 'silver lake', 'stapleton', 'sunnyside', 'tompkinsville', 'west brighton', 'westerleigh', 'arrochar', 'bloomfield', 'bulls head', 'chelsea', 'dongan hills', 'egbertville', 'emerson hill', 'grant city', 'grasmere', 'midland beach', 'new dorp', 'new springville', 'oakwood', 'ocean breeze', 'old town', 'south beach', 'todt hill', 'travis', 'annadale', 'arden heights', 'bay terrace', 'charleston', 'eltingville', 'great kills', 'greenridge', 'huguenot', 'pleasant plains', "prince's bay", 'richmond valley', 'rossville', 'tottenville', 'woodrow']
     def check(neighborhood):
         result = [i for i in neighborhoods if i in neighborhood]
@@ -99,13 +101,26 @@ def count_city_agency(dataset):
 
 
 def count_areas_of_study(dataset):
-    # TODO: test
+    # TODO: distinguish from subjects
     area_study = ['ANIMAL SCIENCE', 'ARCHITECTURE', 'BUSINESS', 'COMMUNICATIONS', 'COMPUTER SCIENCE & TECHNOLOGY', \
                 'COMPUTER SCIENCE, MATH & TECHNOLOGY', 'COSMETOLOGY', 'CULINARY ARTS', 'ENGINEERING', \
                 'ENVIRONMENTAL SCIENCE', 'FILM/VIDEO', 'HEALTH PROFESSIONS', 'HOSPITALITY, TRAVEL, & TOURISM', \
                 'HUMANITIES & INTERDISCIPLINARY', 'JROTC', 'LAW & GOVERNMENT', 'PERFORMING ARTS', 'PERFORMING ARTS/VISUAL ART & DESIGN', \
                 'PROJECT-BASED LEARNING', 'SCIENCE & MATH', 'TEACHING', 'VISUAL ART & DESIGN', 'ZONED']
-    count = dataset.rdd.map(lambda x: (x[0], x[1]) if (x[0].upper() in area_study) else (x[0], 0)).values().sum()
+    areas = ['general', 'agriculture production and management', 'agricultural economics', 'animal', 'food science', 'plant science and agronomy', 'soil science', 'miscellaneous agriculture', 'forestry', 'natural resources management', 'fine arts', 'drama and theater arts', 'music', 'visual and performing arts', 'commercial art and graphic design', 'film video and photographic arts', 'studio arts', 'miscellaneous fine arts', 'environmental science', 'biology', 'biochemical sciences', 'botany', 'molecular biology', 'ecology', 'genetics', 'microbiology', 'pharmacology', 'physiology', 'zoology', 'neuroscience', 'miscellaneous biology', 'cognitive science and biopsychology', 'general business', 'accounting', 'actuarial science', 'business management and administration', 'operations logistics and e-commerce', 'business economics', 'marketing and marketing research', 'finance', 'human resources and personnel management', 'international business', 'hospitality management', 'management information systems and statistics', 'miscellaneous business & medical administration', 'communications', 'journalism', 'mass media', 'advertising and public relations', 'communication technologies', 'computer and information systems', 'computer programming and data processing', 'computer science', 'information sciences', 'computer administration management and security', 'computer networking and telecommunications', 'mathematics', 'applied mathematics', 'statistics and decision science', 'mathematics and computer science', 'general education', 'educational administration and supervision', 'school student counseling', 'elementary education', 'mathematics teacher education', 'physical and health education teaching', 'early childhood education', 'science and computer teacher education', 'secondary teacher education', 'special needs education', 'social science or history teacher education', 'teacher education: multiple levels', 'language and drama education', 'art and music education', 'miscellaneous education', 'library science', 'architecture', 'general engineering', 'aerospace engineering', 'biological engineering', 'architectural engineering', 'biomedical engineering', 'chemical engineering', 'civil engineering', 'computer engineering', 'electrical engineering', 'engineering mechanics physics and science', 'environmental engineering', 'geological and geophysical engineering', 'industrial and manufacturing engineering', 'materials engineering and materials science', 'mechanical engineering', 'metallurgical engineering', 'mining and mineral engineering', 'naval architecture and marine engineering', 'nuclear engineering', 'petroleum engineering', 'miscellaneous engineering', 'engineering technologies', 'engineering and industrial management', 'electrical engineering technology', 'industrial production technologies', 'mechanical engineering related technologies', 'miscellaneous engineering technologies', 'materials science', 'nutrition sciences', 'general medical and health services', 'communication disorders sciences and services', 'health and medical administrative services', 'medical assisting services', 'medical technologies technicians', 'health and medical preparatory programs', 'nursing', 'pharmacy pharmaceutical sciences and administration', 'treatment therapy professions', 'community and public health', 'miscellaneous health medical professions', 'area ethnic and civilization studies', 'linguistics and comparative language and literature', 'french german latin and other common foreign language studies', 'other foreign languages', 'english language and literature', 'composition and rhetoric', 'liberal arts', 'humanities', 'intercultural and international studies', 'philosophy and religious studies', 'theology and religious vocations', 'anthropology and archeology', 'art history and criticism', 'history', 'united states history', 'cosmetology services and culinary arts', 'family and consumer sciences', 'military technologies', 'physical fitness parks recreation and leisure', 'construction services', 'electrical, mechanical, and precision technologies and production', 'transportation sciences and technologies', 'multi/interdisciplinary studies', 'court reporting', 'pre-law and legal studies', 'criminal justice and fire protection', 'public administration', 'public policy', 'physical sciences', 'astronomy and astrophysics', 'atmospheric sciences and meteorology', 'chemistry', 'geology and earth science', 'geosciences', 'oceanography', 'physics', 'multi-disciplinary or general science', 'nuclear, industrial radiology, and biological technologies', 'psychology', 'educational psychology', 'clinical psychology', 'counseling psychology', 'industrial and organizational psychology', 'social psychology', 'miscellaneous psychology', 'human services and community organization', 'social work', 'interdisciplinary social sciences', 'general social sciences', 'economics', 'criminology', 'geography', 'international relations', 'political science and government', 'sociology', 'miscellaneous social sciences']
+    def check(area):
+        area = re.sub(r'[^\w ]', '$', area).split('$')
+        result = []
+        # result = [i for i in areas if (area in i or i in area)]
+        for a in area:
+            for i in areas:
+                if a in i or i in a:
+                    result.append(i)
+        if len(result) > 0:
+            return True
+        else:
+            return False
+    count = dataset.rdd.map(lambda x: (x[0], x[1]) if check(x[0].lower()) else (x[0], 0)).values().sum()
     return count
 
 
@@ -113,7 +128,7 @@ def count_subjects_in_school(dataset):
     # TODO: modify for core courses
     subjects = ['ENGLISH', 'MATH', 'SCIENCE', 'SOCIAL STUDIES']
     count = dataset.rdd.map(lambda x: (x[0], x[1]) if x[0].upper() in subjects else (x[0], 0)).values().sum()
-    return countt
+    return count
 
 
 def count_school_levels(dataset):
@@ -155,8 +170,17 @@ def count_type_of_location(dataset):
     ret = count
 
 
-def count_parks_or_playgrounds(dataset):
-    ret = count
+def count_parks_or_playgrounds(dataset):    # 0.8 x1, 0.3 x1, <0.01 x3
+    # TODO:
+    words = ['park', 'playground']
+    def check(item):
+        result = [i for i in words if i in item]
+        if len(result) > 0:
+            return True
+        else:
+            return False
+    count = dataset.rdd.map(lambda x: (x[0], x[1]) if check(x[0].lower()) else (x[0], 0)).values().sum()
+    return count
 
 
 ######################## Main ########################
