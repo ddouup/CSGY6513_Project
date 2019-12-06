@@ -120,7 +120,7 @@ datasets = (spark.read.format('csv')
             .toDF('filename', 'title'))
 
 # 2. for each dataset
-for filename, title in datasets.toLocalIterator():
+for filename, title in datasets.orderBy(F.rand()).toLocalIterator():
     # filename, title = next(datasets.toLocalIterator())
     print(u'>> entering {}.tsv.gz: {}'.format(filename, title))
     try:
@@ -131,84 +131,87 @@ for filename, title in datasets.toLocalIterator():
     except:
         pass
 
-    # 2.1 load dataset
-    dataset = (spark.read.format('csv')
-               .options(header='true', inferschema='true', sep='\t')
-               .load('/user/hm74/NYCOpenData/{}.tsv.gz'.format(filename)))
+    try:
+        # 2.1 load dataset
+        dataset = (spark.read.format('csv')
+                   .options(header='true', inferschema='true', sep='\t')
+                   .load('/user/hm74/NYCOpenData/{}.tsv.gz'.format(filename)))
 
-    # 2.2 count dataset rows
-    dataset_count = dataset.count()
+        # 2.2 count dataset rows
+        dataset_count = dataset.count()
 
-    # 2.3 create dataset profile
-    output = {'dataset_name': filename, 'columns': [], 'key_column_candidates': []}
+        # 2.3 create dataset profile
+        output = {'dataset_name': filename, 'columns': [], 'key_column_candidates': []}
 
-    # 2.4 batch compute simple column profiles
-    # 2.4.1 batch select at once
-    batch_select = dataset.select([
-        item for name in dataset.columns for item in (
-            F.count(F.when(~F.isnull(name if '.' not in name else f'`{name}`'), True)),
-            F.count(F.when(F.isnull(name if '.' not in name else f'`{name}`'), True)),
-            F.countDistinct(name if '.' not in name else f'`{name}`'),
-        )
-    ]).collect()[0]
-    # 2.4.2 group result by chunk of size 3
-    batch_select_chunked = (batch_select[i:i+3] for i in range(0, len(batch_select), 3))
-
-    # 2.5 create column profiles
-    for column, select in zip(dataset.schema, batch_select_chunked):
-        # column, select = next(zip(dataset.schema, batch_select_chunked))
-        name = column.name if '.' not in column.name else f'`{column.name}`'
-        dataType = column.dataType
-
-        # 2.5.1 use batch select
-        column_output = {
-            'column_name': name,
-            'number_non_empty_cells': select[0],
-            'number_empty_cells': select[1],
-            'number_distinct_values': select[2],
-            'frequent_values': None,
-            'data_types': [],
-            'semantic_types': [],
-        }
-        assert column_output['number_non_empty_cells'] + column_output['number_empty_cells'] == dataset_count
-        assert column_output['number_distinct_values'] <= dataset_count
-
-        # 2.5.2 fill frequent_values
-        column_output['frequent_values'] = [x for [x] in (dataset.groupBy(name).count()
-                                                          .orderBy(F.desc('count'))
-                                                          .select(name)
-                                                          .take(5))]
-
-        # 2.5.3 default datatype => fill data_types
-        column_output['data_types'].append(profile_datatype(dataset, name, dataType))
-
-        # 2.5.4 datatype indefinite => try others
-        if isinstance(dataType, T.StringType):
-            cast_dataset = dataset.select(
-                dataset[name].cast(T.LongType()).alias('_integer'),
-                dataset[name].cast(T.DoubleType()).alias('_double'),
-                to_date_robust(dataset[name]).alias('_date'),
+        # 2.4 batch compute simple column profiles
+        # 2.4.1 batch select at once
+        batch_select = dataset.select([
+            item for name in dataset.columns for item in (
+                F.count(F.when(~F.isnull(name if '.' not in name else f'`{name}`'), True)),
+                F.count(F.when(F.isnull(name if '.' not in name else f'`{name}`'), True)),
+                F.countDistinct(name if '.' not in name else f'`{name}`'),
             )
-            cast_select = cast_dataset.select([
-                F.count(F.when(~F.isnull('_integer'), '_integer')),
-                F.count(F.when(~F.isnull('_double'), '_double')),
-                F.count(F.when(~F.isnull('_date'), '_date')),
-            ]).collect()[0]
+        ]).collect()[0]
+        # 2.4.2 group result by chunk of size 3
+        batch_select_chunked = (batch_select[i:i+3] for i in range(0, len(batch_select), 3))
 
-            if cast_select[0]:
-                column_output['data_types'].append(profile_datatype(cast_dataset, '_integer'))
-            if cast_select[1]:
-                column_output['data_types'].append(profile_datatype(cast_dataset, '_double'))
-            if cast_select[2] > 0.6 * dataset.count():
-                column_output['data_types'].append(profile_datatype(cast_dataset, '_date'))
+        # 2.5 create column profiles
+        for column, select in zip(dataset.schema, batch_select_chunked):
+            # column, select = next(zip(dataset.schema, batch_select_chunked))
+            name = column.name if '.' not in column.name else f'`{column.name}`'
+            dataType = column.dataType
 
-        # 2.5.5 all distinct => key candidate
-        if column_output['number_distinct_values'] == dataset.count():
-            output['key_column_candidates'].append(name)
+            # 2.5.1 use batch select
+            column_output = {
+                'column_name': name,
+                'number_non_empty_cells': select[0],
+                'number_empty_cells': select[1],
+                'number_distinct_values': select[2],
+                'frequent_values': None,
+                'data_types': [],
+                'semantic_types': [],
+            }
+            assert column_output['number_non_empty_cells'] + column_output['number_empty_cells'] == dataset_count
+            assert column_output['number_distinct_values'] <= dataset_count
 
-        # 2.5.6 add column to output
-        output['columns'].append(column_output)
+            # 2.5.2 fill frequent_values
+            column_output['frequent_values'] = [x for [x] in (dataset.groupBy(name).count()
+                                                              .orderBy(F.desc('count'))
+                                                              .select(name)
+                                                              .take(5))]
 
-    # 2.6 dump dataset profile as json
-    with open('task1.{}.json'.format(filename), 'w') as f:
-        json.dump(output, f, indent=2, cls=DateEncoder)
+            # 2.5.3 default datatype => fill data_types
+            column_output['data_types'].append(profile_datatype(dataset, name, dataType))
+
+            # 2.5.4 datatype indefinite => try others
+            if isinstance(dataType, T.StringType):
+                cast_dataset = dataset.select(
+                    dataset[name].cast(T.LongType()).alias('_integer'),
+                    dataset[name].cast(T.DoubleType()).alias('_double'),
+                    to_date_robust(dataset[name]).alias('_date'),
+                )
+                cast_select = cast_dataset.select([
+                    F.count(F.when(~F.isnull('_integer'), '_integer')),
+                    F.count(F.when(~F.isnull('_double'), '_double')),
+                    F.count(F.when(~F.isnull('_date'), '_date')),
+                ]).collect()[0]
+
+                if cast_select[0]:
+                    column_output['data_types'].append(profile_datatype(cast_dataset, '_integer'))
+                if cast_select[1]:
+                    column_output['data_types'].append(profile_datatype(cast_dataset, '_double'))
+                if cast_select[2] > 0.6 * dataset.count():
+                    column_output['data_types'].append(profile_datatype(cast_dataset, '_date'))
+
+            # 2.5.5 all distinct => key candidate
+            if column_output['number_distinct_values'] == dataset.count():
+                output['key_column_candidates'].append(name)
+
+            # 2.5.6 add column to output
+            output['columns'].append(column_output)
+
+        # 2.6 dump dataset profile as json
+        with open('task1.{}.json'.format(filename), 'w') as f:
+            json.dump(output, f, indent=2, cls=DateEncoder)
+    except Exception as e:
+        print(e)
