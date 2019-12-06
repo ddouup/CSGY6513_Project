@@ -46,7 +46,7 @@ def count_city(dataset):    # most > 0.7, 0.6 x1, 0.5x1, 0.3x1
         else:
             return False
     count = dataset.rdd.map(lambda x: (x[0], x[1]) if check(x[0].lower()) else (x[0], 0)).values().sum()
-    return countt
+    return count
 
 
 def count_neighborhood(dataset):    # most > 0.9, 0.8 x2
@@ -146,8 +146,9 @@ def count_school_levels(dataset):
 
 
 def count_university_names(dataset):
-    ret = count
-
+    university_names = ['university', 'college']
+    count = dataset.rdd.map(lambda x: (x[0], x[1]) if x[0].split(" ")[-1].lower() in university_names else (x[0], 0)).values().sum()
+    return count
 
 def count_websites(dataset):
     web_regex = re.compile('(https?:\/\/)?(www\.)?([a-zA-Z0-9]+(-?[a-zA-Z0-9])*\.)+[\w]{2,}(\/\S*)?')
@@ -172,14 +173,8 @@ def count_type_of_location(dataset):
 
 def count_parks_or_playgrounds(dataset):    # 0.8 x1, 0.3 x1, <0.01 x3
     # TODO:
-    words = ['park', 'playground']
-    def check(item):
-        result = [i for i in words if i in item]
-        if len(result) > 0:
-            return True
-        else:
-            return False
-    count = dataset.rdd.map(lambda x: (x[0], x[1]) if check(x[0].lower()) else (x[0], 0)).values().sum()
+    words = ['park', 'playground', 'green', 'plots', 'square', 'plaza']
+    count = dataset.rdd.map(lambda x: (x[0], x[1]) if x[0].split(" ")[-1].lower() in words else (x[0], 0)).values().sum()
     return count
 
 
