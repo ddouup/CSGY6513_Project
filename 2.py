@@ -215,7 +215,7 @@ def profile_semantic(dataset):
     confirm_threshold = 0.95 * dataset.count()
     ret = []
     for semantic_type in semantic_types:
-        label, count = semantic_types[semantic_type](dataset)
+        count, label = semantic_types[semantic_type](dataset), None
         ret.append({'semantic_type': semantic_type, 'label': label, 'count': count})
         if count > confirm_threshold:
             break

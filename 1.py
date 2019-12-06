@@ -30,17 +30,18 @@ def to_date_robust(x):
     return F.to_date(to_iso_string_udf(x))
 
 
-class DateTimeEncoder(json.JSONEncoder):
+class DateEncoder(json.JSONEncoder):
     def default(self, o):
-        if isinstance(o, datetime):
+        if isinstance(o, datetime.date):
             return o.isoformat()
         return super().default(o)
 
 ######################## Main ########################
 
 
-def profile_datatype(dataset, name):
-    dataType = dataset.schema[name].dataType
+def profile_datatype(dataset, name, dataType=None):
+    if dataType is None:
+        dataType = dataset.schema[name].dataType
     if isinstance(dataType, T.IntegerType) or isinstance(dataType, T.LongType):
         select = dataset.select(
             F.count(name),
@@ -72,6 +73,19 @@ def profile_datatype(dataset, name):
             "min_value": select[2],
             "mean": select[3],
             "stddev": select[4],
+        }
+    elif isinstance(dataType, T.BooleanType):
+        select = dataset.select(
+            F.count(name),
+            F.count(F.when(dataset[name], 1)),
+        ).collect()[0]
+        ret = {
+            "type": "BOOLEAN",
+            "count": select[0],
+            "max_value": True,
+            "min_value": False,
+            "mean": select[1] / select[0],
+            "stddev": (select[1] / select[0] - (select[1] / select[0]) ** 2)**(.5),
         }
     elif isinstance(dataType, T.DateType) or isinstance(dataType, T.TimestampType):
         select = dataset.select(
@@ -132,9 +146,9 @@ for filename, title in datasets.toLocalIterator():
     # 2.4.1 batch select at once
     batch_select = dataset.select([
         item for name in dataset.columns for item in (
-            F.count(F.when(~F.isnull(name), name)),
-            F.count(F.when(F.isnull(name), name)),
-            F.countDistinct(name),
+            F.count(F.when(~F.isnull(name if '.' not in name else f'`{name}`'), True)),
+            F.count(F.when(F.isnull(name if '.' not in name else f'`{name}`'), True)),
+            F.countDistinct(name if '.' not in name else f'`{name}`'),
         )
     ]).collect()[0]
     # 2.4.2 group result by chunk of size 3
@@ -143,7 +157,7 @@ for filename, title in datasets.toLocalIterator():
     # 2.5 create column profiles
     for column, select in zip(dataset.schema, batch_select_chunked):
         # column, select = next(zip(dataset.schema, batch_select_chunked))
-        name = column.name
+        name = column.name if '.' not in column.name else f'`{column.name}`'
         dataType = column.dataType
 
         # 2.5.1 use batch select
@@ -166,7 +180,7 @@ for filename, title in datasets.toLocalIterator():
                                                           .take(5))]
 
         # 2.5.3 default datatype => fill data_types
-        column_output['data_types'].append(profile_datatype(dataset, name))
+        column_output['data_types'].append(profile_datatype(dataset, name, dataType))
 
         # 2.5.4 datatype indefinite => try others
         if isinstance(dataType, T.StringType):
@@ -197,4 +211,4 @@ for filename, title in datasets.toLocalIterator():
 
     # 2.6 dump dataset profile as json
     with open('task1.{}.json'.format(filename), 'w') as f:
-        json.dump(output, f, indent=2, cls=DateTimeEncoder)
+        json.dump(output, f, indent=2, cls=DateEncoder)
