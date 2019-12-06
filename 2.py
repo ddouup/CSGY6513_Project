@@ -161,7 +161,7 @@ def count_building_classification(dataset):
     count = dataset.rdd.map(lambda x: (x[0], x[1]) if x[0].split('-')[0] in buildings else (x[0], 0)).values().sum()
     return count
 
-
+# no available files
 def count_vehicle_type(dataset):
     ret = count
 
