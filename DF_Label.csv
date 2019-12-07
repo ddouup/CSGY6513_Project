@@ -106,7 +106,7 @@ ebkm-iyma.Street_Address.txt.gz,address,
 emnd-d8ba.PRINCIPAL_PHONE_NUMBER.txt.gz,phone_number,
 en2c-j6tw.BRONX_CONDOMINIUM_PROPERTY_Building_Classification.txt.gz,building_classification,
 erm2-nwe9.Incident_Zip.txt.gz,zip,
-erm2-nwe9.Landmark.txt.gz,street_name,type_of_location
+erm2-nwe9.Landmark.txt.gz,street_name,parks_or_playgrounds
 erm2-nwe9.Park_Facility_Name.txt.gz,parks_or_playgrounds,school_name
 f3cg-u8bv.Agency.txt.gz,city_agency,
 f42p-xqaa.BROOKLYN___COOPERATIVES_COMPARABLE_PROPERTIES___Building_Classification.txt.gz,building_classification,
@@ -209,7 +209,7 @@ s79c-jgrm.City.txt.gz,city,
 s9d3-x4fz.ZIP.txt.gz,zip,
 sqcr-6mww.Cross_Street_2.txt.gz,street_name,
 sqcr-6mww.Location.txt.gz,coordinates,
-sqcr-6mww.Park_Facility_Name.txt.gz,parks_or_playgrounds,school_name
+sqcr-6mww.Park_Facility_Name.txt.gz,school_name,
 sv2w-rv3k.BORO.txt.gz,borough,
 sxmw-f24h.Cross_Street_1.txt.gz,street_name,
 sxmw-f24h.School_Name.txt.gz,school_name,
