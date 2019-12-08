@@ -51,17 +51,19 @@ predict_postive = {semantic_type: 0 for semantic_type in semantic_types_threshol
 truth_postive = {semantic_type: 0 for semantic_type in semantic_types_threshold}
 
 # 1. list the working subset
-with open('./cluster2.txt') as f:
-    cluster = json.loads(f.read().replace("'", '"'))
-
-with open('./DF_Label.csv') as f:
-    ground_truth = {
-        filename: {
-            semantic_type
-            for semantic_type in labels if semantic_type is not ''
-        }
-        for [filename, *labels] in csv.reader(f)
+cluster = json.loads(spark.read.text('/user/ql1045/proj-in/cluster2.txt').collect()[0][0].replace("'", '"'))
+ground_truth = {
+    filename: {
+        # label.filter(e => e)
+        semantic_type
+        for semantic_type in labels if semantic_type is not ''
     }
+    # for each line
+    for [filename, *labels] in csv.reader(
+        # each line = Row[0]
+        (x for [x] in spark.read.text('/user/ql1045/proj-in/DF_Label.csv').collect())
+    )
+}
 
 # 2. for each working dataset
 for filename in cluster:

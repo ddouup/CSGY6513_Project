@@ -14,13 +14,49 @@ except NameError:
 
 ######################## Utils ########################
 
-
+person_first_name_collection = (spark.read.format('csv')
+                                .options(inferschema='true')
+                                .load('/user/ql1045/proj-in/person-first-names/*.txt')
+                                .toDF('value', 'gender', 'count')
+                                .select(F.upper(F.col('value')).alias('value'))
+                                .distinct()
+                                .cache())
+person_last_name_collection = (spark.read.format('csv')
+                               .options(inferschema='true', header='true')
+                               .load('/user/ql1045/proj-in/person-last-names/*.csv')
+                               .select(F.upper(F.col('name')).alias('value'))
+                               .distinct()
+                               .cache())
+person_name_collection = person_first_name_collection.union(person_last_name_collection).distinct().cache()
 def count_person_name(dataset):
-    ret = count
+    '''
+    Source(first name) https://catalog.data.gov/dataset/baby-names-from-social-security-card-applications-national-level-data
+    Source(last name)  https://www.census.gov/topics/population/genealogy/data.html
+    '''
+    explode = (dataset.withColumn('value', F.split(F.col('value'), r'\W+'))
+                      .filter(F.size('value') <= 2)
+                      .withColumn('value', F.explode('value')))
+    return explode.join(person_name_collection, 'value').select(F.sum('count')).collect()[0][0] or 0
+    # return explode.join(person_name_collection, 'value').groupBy('value').agg(F.sum('count')).show()
 
 
+business_name_collection = (spark.read.format('csv')
+                            .options(inferschema='true', header='true')
+                            .load('/user/ql1045/proj-in/bussiness-name.csv')
+                            .select(F.explode(F.split('Current Entity Name',r'\W+')).alias('value'))
+                            .filter(F.length('value') > 1)
+                            .groupBy('value')
+                            .agg(F.count('value').alias('count'))
+                            .orderBy(F.desc('count'))
+                            .select('value')
+                            .limit(500)
+                            .cache())
 def count_business_name(dataset):
-    ret = count
+    '''
+    Source: https://data.ny.gov/Economic-Development/Active-Corporations-Beginning-1800/n9v6-gdp6
+    '''
+    explode = dataset.withColumn('value', F.explode(F.split(F.col('value'), r'\W+')))
+    return explode.join(business_name_collection, 'value').select(F.sum('count')).collect()[0][0] or 0
 
 
 def count_phone_number(dataset):
@@ -29,7 +65,7 @@ def count_phone_number(dataset):
     return count
 
 
-street_noun_regex = re.compile(r'\W*(?:STREET|AVENUE|ST|PLACE|AVE|ROAD|COURT|LANE|DRIVE|PARK|BOULEVARD|RD|BLVD|PARKWAY|PL|TERRACE|EXIT|LOOP|EXPRESSWAY|PKWY|PLAZA|BRIDGE|EN|ENTRANCE|DR|ET|BROADWAY|FLOOR|added_by_us|TUNNEL|ROUTE|CIRCLE|WAY|SQUARE|XPWY|EXPY|CRCL|WALK|PKW|CONCOURSE|BOARDWALK|FREEWAY|CHANNEL)\W*$')
+street_noun_regex = re.compile(r'^\W*(?:STREET|AVENUE|ST|PLACE|AVE|ROAD|COURT|LANE|DRIVE|PARK|BOULEVARD|RD|BLVD|PARKWAY|PL|TERRACE|EXIT|LOOP|EXPRESSWAY|PKWY|PLAZA|BRIDGE|EN|ENTRANCE|DR|ET|BROADWAY|FLOOR|added_by_us|TUNNEL|ROUTE|CIRCLE|WAY|SQUARE|XPWY|EXPY|CRCL|WALK|PKW|CONCOURSE|BOARDWALK|FREEWAY|CHANNEL)\w?\W*$')
 door_number_regex = re.compile(r'\d+')
 
 
@@ -38,7 +74,7 @@ def is_address(data):
         return None
     split = [word for word in data.split(' ') if word]
     for street_noun_index in range(len(split)):
-        if street_noun_regex.match(split[street_noun_index]):
+        if street_noun_regex.search(split[street_noun_index]):
             break
     else:
         return None
@@ -52,11 +88,11 @@ is_address_udf = F.udf(is_address, T.BooleanType())
 
 
 def count_address(dataset):  # 0.86531622832036702147027053269088
-    return dataset.select(F.count(F.when(is_address_udf('value'), 1))).collect()[0][0]
+    return dataset.filter(is_address_udf('value')).select(F.sum('count')).collect()[0][0]
 
 
 def count_street_name(dataset):  # 0.81533175864290315653854412712046
-    return dataset.select(F.count(F.when(~is_address_udf('value'), 1))).collect()[0][0]
+    return dataset.filter(~is_address_udf('value')).select(F.sum('count')).collect()[0][0]
 
 
 def count_city(dataset):    # most > 0.7, 0.6 x1, 0.5x1, 0.3x1
@@ -82,7 +118,7 @@ def count_neighborhood(dataset):    # most > 0.9, 0.8 x2
         else:
             return False
     count = dataset.rdd.map(lambda x: (x[0], x[1]) if check(x[0].lower()) else (x[0], 0)).values().sum()
-    return coun
+    return count
 
 
 def count_coordinates(dataset):
@@ -258,7 +294,7 @@ semantic_types = {
 
 
 def profile_semantic(dataset):
-    confirm_threshold = 0.95 * dataset.count()
+    confirm_threshold = 0.8 * dataset.select(F.sum('count')).collect()[0][0]
     ret = []
     for semantic_type in semantic_types:
         count, label = semantic_types[semantic_type](dataset), None
@@ -269,8 +305,7 @@ def profile_semantic(dataset):
 
 
 # 1. list the working subset
-with open('./cluster2.txt') as f:
-    cluster = json.loads(f.read().replace("'", '"'))
+cluster = json.loads(spark.read.text('/user/ql1045/proj-in/cluster2.txt').collect()[0][0].replace("'", '"'))
 
 # 2. for each working dataset
 for filename in cluster:
