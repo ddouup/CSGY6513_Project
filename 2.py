@@ -7,6 +7,7 @@ from pyspark import SparkContext
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
+from matplotlib.colors import is_color_like
 
 try:
     spark
@@ -341,6 +342,6 @@ for filename in cluster:
         os.mkdir('./task2/')
     except Exception as e:
         pass
-        
+
     with open('./task2/{}.{}.json'.format(dataset_name, column_name), 'w') as f:
         json.dump(output, f, indent=2)
