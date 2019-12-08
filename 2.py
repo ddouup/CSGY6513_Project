@@ -180,10 +180,10 @@ def count_city_agency(dataset): # most >0.8, AGENCY_NAME 0.23, 0.67, Agency_ID 0
     return count
 
 
-def count_areas_of_study(dataset):  # all >0,9
+def count_areas_of_study(dataset):  # all >0.9
     # uq7m-95z8.interest1
     area_study = ['ANIMAL SCIENCE', 'ARCHITECTURE', 'BUSINESS', 'COMMUNICATIONS', 'COMPUTER SCIENCE & TECHNOLOGY', 'COMPUTER SCIENCE, MATH & TECHNOLOGY', 'COSMETOLOGY', 'CULINARY ARTS', 'ENGINEERING', 'ENVIRONMENTAL SCIENCE', 'FILM/VIDEO', 'HEALTH PROFESSIONS', 'HOSPITALITY, TRAVEL, & TOURISM', 'HUMANITIES & INTERDISCIPLINARY', 'JROTC', 'LAW & GOVERNMENT', 'PERFORMING ARTS', 'PERFORMING ARTS/VISUAL ART & DESIGN', 'PROJECT-BASED LEARNING', 'SCIENCE & MATH', 'TEACHING', 'VISUAL ART & DESIGN', 'ZONED']
-    count = dataset.rdd.map(lambda x: (x[0], x[1]) if x[0].upper() in are else (x[0], 0)).values().sum()
+    count = dataset.rdd.map(lambda x: (x[0], x[1]) if x[0].upper() in area_study else (x[0], 0)).values().sum()
     return count
 
 
@@ -303,7 +303,7 @@ for filename in cluster:
     [dataset_name, column_name] = filename.split('.')[0:2]
     print(u'>> entering {}.{}'.format(dataset_name, column_name))
     try:
-        with open('task2.{}.{}.json'.format(dataset_name, column_name)) as f:
+        with open('./task2/{}.{}.json'.format(dataset_name, column_name)) as f:
             json.load(f)
             print(u'>> skipping {}.{}'.format(dataset_name, column_name))
             continue
