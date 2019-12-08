@@ -104,8 +104,16 @@ def count_borough(dataset):  # 0.92
     return count
 
 
-def count_school_name(dataset):
-    ret = count
+def count_school_name(dataset): # most >0.7, >0.5 x2 (school_name & parks_or_playgrounds)       0.24, 0.58, 0.97 for Park_Facility_Name contains schools
+    school_name_list = ['J.H.S.', 'JHS', 'M.S.', 'MS', 'P.S.', 'PS', 'I.S.', 'IS', 'ACADEMY', 'SCHOOL', 'CENTER']
+    def check(name):
+        result = [i for i in school_name_list if i in name]
+        if len(result) > 0:
+            return True
+        else:
+            return False
+    count = dataset.rdd.map(lambda x: (x[0], x[1]) if check(x[0].upper()) else (x[0], 0)).values().sum()
+    return count
 
 
 def count_color(dataset):   # 0.7
@@ -132,7 +140,6 @@ def count_car_make(dataset):    # most >0.94, DVC_MAKE 0.79
 
 
 def count_city_agency(dataset): # most >0.8, AGENCY_NAME 0.23, 0.67, Agency_ID 0.0
-    # TODO: deal with Agency_ID
     # https://a856-cityrecord.nyc.gov/Home/AgencyAcronyms
     agencies = ['ACS', "ADMINISTRATION FOR CHILDREN'S SERVICES", 'BIC', 'BUSINESS INTEGRITY COMMISSION', 'BNYDC', 'BROOKLYN NAVY YARD DEVELOPMENT CORP', 'BOC', 'BOARD OF CORRECTION', 'BPL', 'BROOKLYN PUBLIC LIBRARY', 'BSA', 'BOARD OF STANDARDS AND APPEALS', 'BXDA', 'BRONX DISTRICT ATTORNEY', 'CCRB', 'CIVILIAN COMPLAINT REVIEW BOARD', 'CFB', 'CAMPAIGN FINANCE BOARD', 'COIB', 'CONFLICTS OF INTEREST BOARD', 'CPC', 'CITY PLANNING COMMISSION', 'CUNY', 'CITY UNIVERSITY OF NEW YORK', 'DANY', 'NEW YORK COUNTY DISTRICT ATTORNEY', 'DCA', 'DEPARTMENT OF CONSUMER AFFAIRS', 'DCAS', 'DEPARTMENT OF CITYWIDE ADMINISTRATIVE SERVICES', 'DCLA', 'DEPARTMENT OF CULTURAL AFFAIRS', 'DCP', 'DEPARTMENT OF CITY PLANNING', 'DDC', 'DEPARTMENT OF DESIGN AND CONSTRUCTION', 'DEP', 'DEPARTMENT OF ENVIRONMENTAL PROTECTION', 'DFTA', 'DEPARTMENT FOR THE AGING', 'DHS', 'DEPARTMENT OF HOMELESS SERVICES', 'DOB', 'DEPARTMENT OF BUILDINGS', 'DOC', 'DEPARTMENT OF CORRECTION', 'DOF', 'DEPARTMENT OF FINANCE', 'DOHMH', 'DEPARTMENT OF HEALTH AND MENTAL HYGIENE', 'DOI', 'DEPARTMENT OF INVESTIGATION', 'DOITT', 'DEPARTMENT OF INFORMATION TECHNOLOGY AND TELECOMMUNICATIONS', 'DOP', 'DEPARTMENT OF PROBATION', 'DORIS', 'DEPARTMENT OF RECORDS AND INFORMATION SERVICES', 'DOT', 'DEPARTMENT OF TRANSPORTATION', 'DPR', 'DEPARTMENT OF PARKS AND RECREATION', 'DSNY', 'DEPARTMENT OF SANITATION', 'DYCD', 'DEPARTMENT OF YOUTH AND COMMUNITY DEVELOPMENT', 'ECB', 'ENVIRONMENTAL CONTROL BOARD', 'EDC', 'ECONOMIC DEVELOPMENT CORPORATION', 'EEPC', 'EQUAL EMPLOYMENT PRACTICES COMMISSION', 'FCRC', 'FRANCHISE AND CONCESSION REVIEW COMMITTEE', 'FDNY', 'FIRE DEPARTMENT OF NEW YORK', 'FISA', 'FINANCIAL INFORMATION SERVICES AGENCY', 'HHC', 'HEAL AND HOSPITALS CORPORATION', 'HPD', 'DEPARTMENT OF HOUSING PRESERVATION AND DEVELOPMENT', 'HRA', 'HUMAN RESOURCES ADMINISTRATION', 'IBO', 'INDEPENDENT BUDGET OFFICE', 'KCDA', 'KINGS COUNTY DISTRICT ATTORNEY', 'LPC', 'LANDMARKS PRESERVATION COMMISSION', 'MOCJ', 'MAYOR’S OFFICE OF CRIMINAL JUSTICE', 'MOCS', "MAYOR'S OFFICE OF CONTRACT SERVICES", 'NYCDOE', 'DEPARTMENT OF EDUCATION', 'NYCEM', 'EMERGENCY MANAGEMENT', 'NYCERS', 'NEW YORK CITY EMPLOYEES RETIREMENT SYSTEM', 'NYCHA', 'NEW YORK CITY HOUSING AUTHORITY', 'NYCLD', 'LAW DEPARTMENT', 'NYCTAT', 'NEW YORK CITY TAX APPEALS TRIBUNAL', 'NYPD', 'NEW YORK CITY POLICE DEPARTMENT', 'NYPL', 'NEW YORK PUBLIC LIBRARY', 'OATH', 'OFFICE OF ADMINISTRATIVE TRIALS AND HEARINGS', 'OCME', 'OFFICE OF CHIEF MEDICAL EXAMINER', 'OMB', 'OFFICE OF MANAGEMENT & BUDGET', 'OSNP', 'OFFICE OF THE SPECIAL NARCOTICS PROSECUTOR', 'PPB', 'PROCUREMENT POLICY BOARD', 'QCDA', 'QUEENS DISTRICT ATTORNEY', 'QPL', 'QUEENS BOROUGH PUBLIC LIBRARY', 'RCDA', 'RICHMOND COUNTY DISTRICT ATTORNEY', 'RGB', 'RENT GUIDELINES BOARD', 'SBS', 'SMALL BUSINESS SERVICES', 'SCA', 'SCHOOL CONSTRUCTION AUTHORITY', 'TBTA', 'TRIBOROUGH BRIDGE AND TUNNEL AUTHORITY', 'TLC', 'TAXI AND LIMOUSINE COMMISSION', 'TRS', "TEACHERS' RETIREMENT SYSTEM"]
     def check(agency):
@@ -147,34 +154,17 @@ def count_city_agency(dataset): # most >0.8, AGENCY_NAME 0.23, 0.67, Agency_ID 0
     return count
 
 
-def count_areas_of_study(dataset):
-    # TODO: distinguish from subjects
-    area_study = ['ANIMAL SCIENCE', 'ARCHITECTURE', 'BUSINESS', 'COMMUNICATIONS', 'COMPUTER SCIENCE & TECHNOLOGY', \
-                'COMPUTER SCIENCE, MATH & TECHNOLOGY', 'COSMETOLOGY', 'CULINARY ARTS', 'ENGINEERING', \
-                'ENVIRONMENTAL SCIENCE', 'FILM/VIDEO', 'HEALTH PROFESSIONS', 'HOSPITALITY, TRAVEL, & TOURISM', \
-                'HUMANITIES & INTERDISCIPLINARY', 'JROTC', 'LAW & GOVERNMENT', 'PERFORMING ARTS', 'PERFORMING ARTS/VISUAL ART & DESIGN', \
-                'PROJECT-BASED LEARNING', 'SCIENCE & MATH', 'TEACHING', 'VISUAL ART & DESIGN', 'ZONED']
-    areas = ['general', 'agriculture production and management', 'agricultural economics', 'animal', 'food science', 'plant science and agronomy', 'soil science', 'miscellaneous agriculture', 'forestry', 'natural resources management', 'fine arts', 'drama and theater arts', 'music', 'visual and performing arts', 'commercial art and graphic design', 'film video and photographic arts', 'studio arts', 'miscellaneous fine arts', 'environmental science', 'biology', 'biochemical sciences', 'botany', 'molecular biology', 'ecology', 'genetics', 'microbiology', 'pharmacology', 'physiology', 'zoology', 'neuroscience', 'miscellaneous biology', 'cognitive science and biopsychology', 'general business', 'accounting', 'actuarial science', 'business management and administration', 'operations logistics and e-commerce', 'business economics', 'marketing and marketing research', 'finance', 'human resources and personnel management', 'international business', 'hospitality management', 'management information systems and statistics', 'miscellaneous business & medical administration', 'communications', 'journalism', 'mass media', 'advertising and public relations', 'communication technologies', 'computer and information systems', 'computer programming and data processing', 'computer science', 'information sciences', 'computer administration management and security', 'computer networking and telecommunications', 'mathematics', 'applied mathematics', 'statistics and decision science', 'mathematics and computer science', 'general education', 'educational administration and supervision', 'school student counseling', 'elementary education', 'mathematics teacher education', 'physical and health education teaching', 'early childhood education', 'science and computer teacher education', 'secondary teacher education', 'special needs education', 'social science or history teacher education', 'teacher education: multiple levels', 'language and drama education', 'art and music education', 'miscellaneous education', 'library science', 'architecture', 'general engineering', 'aerospace engineering', 'biological engineering', 'architectural engineering', 'biomedical engineering', 'chemical engineering', 'civil engineering', 'computer engineering', 'electrical engineering', 'engineering mechanics physics and science', 'environmental engineering', 'geological and geophysical engineering', 'industrial and manufacturing engineering', 'materials engineering and materials science', 'mechanical engineering', 'metallurgical engineering', 'mining and mineral engineering', 'naval architecture and marine engineering', 'nuclear engineering', 'petroleum engineering', 'miscellaneous engineering', 'engineering technologies', 'engineering and industrial management', 'electrical engineering technology', 'industrial production technologies', 'mechanical engineering related technologies', 'miscellaneous engineering technologies', 'materials science', 'nutrition sciences', 'general medical and health services', 'communication disorders sciences and services', 'health and medical administrative services', 'medical assisting services', 'medical technologies technicians', 'health and medical preparatory programs', 'nursing', 'pharmacy pharmaceutical sciences and administration', 'treatment therapy professions', 'community and public health', 'miscellaneous health medical professions', 'area ethnic and civilization studies', 'linguistics and comparative language and literature', 'french german latin and other common foreign language studies', 'other foreign languages', 'english language and literature', 'composition and rhetoric', 'liberal arts', 'humanities', 'intercultural and international studies', 'philosophy and religious studies', 'theology and religious vocations', 'anthropology and archeology', 'art history and criticism', 'history', 'united states history', 'cosmetology services and culinary arts', 'family and consumer sciences', 'military technologies', 'physical fitness parks recreation and leisure', 'construction services', 'electrical, mechanical, and precision technologies and production', 'transportation sciences and technologies', 'multi/interdisciplinary studies', 'court reporting', 'pre-law and legal studies', 'criminal justice and fire protection', 'public administration', 'public policy', 'physical sciences', 'astronomy and astrophysics', 'atmospheric sciences and meteorology', 'chemistry', 'geology and earth science', 'geosciences', 'oceanography', 'physics', 'multi-disciplinary or general science', 'nuclear, industrial radiology, and biological technologies', 'psychology', 'educational psychology', 'clinical psychology', 'counseling psychology', 'industrial and organizational psychology', 'social psychology', 'miscellaneous psychology', 'human services and community organization', 'social work', 'interdisciplinary social sciences', 'general social sciences', 'economics', 'criminology', 'geography', 'international relations', 'political science and government', 'sociology', 'miscellaneous social sciences']
-    def check(area):
-        area = re.sub(r'[^\w ]', '$', area).split('$')
-        result = []
-        # result = [i for i in areas if (area in i or i in area)]
-        for a in area:
-            for i in areas:
-                if a in i or i in a:
-                    result.append(i)
-        if len(result) > 0:
-            return True
-        else:
-            return False
-    count = dataset.rdd.map(lambda x: (x[0], x[1]) if check(x[0].lower()) else (x[0], 0)).values().sum()
+def count_areas_of_study(dataset):  # all >0,9
+    # uq7m-95z8.interest1
+    area_study = ['ANIMAL SCIENCE', 'ARCHITECTURE', 'BUSINESS', 'COMMUNICATIONS', 'COMPUTER SCIENCE & TECHNOLOGY', 'COMPUTER SCIENCE, MATH & TECHNOLOGY', 'COSMETOLOGY', 'CULINARY ARTS', 'ENGINEERING', 'ENVIRONMENTAL SCIENCE', 'FILM/VIDEO', 'HEALTH PROFESSIONS', 'HOSPITALITY, TRAVEL, & TOURISM', 'HUMANITIES & INTERDISCIPLINARY', 'JROTC', 'LAW & GOVERNMENT', 'PERFORMING ARTS', 'PERFORMING ARTS/VISUAL ART & DESIGN', 'PROJECT-BASED LEARNING', 'SCIENCE & MATH', 'TEACHING', 'VISUAL ART & DESIGN', 'ZONED']
+    count = dataset.rdd.map(lambda x: (x[0], x[1]) if x[0].upper() in are else (x[0], 0)).values().sum()
     return count
 
 
-def count_subjects_in_school(dataset):
-    # TODO: modify for core courses
+def count_subjects_in_school(dataset):  # all >0.9
     subjects = ['ENGLISH', 'MATH', 'SCIENCE', 'SOCIAL STUDIES']
-    count = dataset.rdd.map(lambda x: (x[0], x[1]) if x[0].upper() in subjects else (x[0], 0)).values().sum()
+    core_course = ['ALGEBRA', 'ASSUMED TEAM TEACHING', 'CHEMISTRY', 'EARTH SCIENCE', 'ECONOMICS', 'ENGLISH 10', 'ENGLISH 11', 'ENGLISH 12', 'ENGLISH 9', 'GEOMETRY', 'GLOBAL HISTORY 10', 'GLOBAL HISTORY 9', 'LIVING ENVIRONMENT', 'MATCHED SECTIONS', 'MATH A', 'MATH B', 'OTHER', 'PHYSICS', 'US GOVERNMENT', 'US GOVERNMENT & ECONOMICS', 'US HISTORY']
+    count = dataset.rdd.map(lambda x: (x[0], x[1]) if (x[0].upper() in subjects or x[0].upper() in core_course) else (x[0], 0)).values().sum()
     return count
 
 
@@ -213,8 +203,9 @@ def count_building_classification(dataset):
 def count_vehicle_type(dataset):
     # https://data.ny.gov/Transportation/Vehicle-Makes-and-Body-Types-Most-Popular-in-New-Y/3pxy-wy2i
     types = ['2dsd', '4dsd', 'ambu', 'atv', 'boat', 'bus', 'cmix', 'conv', 'cust', 'dcom', 'delv', 'dump', 'emvr', 'fire', 'flat', 'fpm', 'h/in', 'h/tr', 'h/wh', 'hrse', 'lim', 'loco', 'lsv', 'lsvt', 'ltrl', 'mcc', 'mcy', 'mfh', 'mopd', 'p/sh', 'pick', 'pole', 'r/rd', 'rbm', 'rd/s', 'refg', 'rplc', 's/sp', 'sedn', 'semi', 'sn/p', 'snow', 'stak', 'subn', 'swt', 't/cr', 'tank', 'taxi', 'tow', 'tr/c', 'tr/e', 'trac', 'trav', 'trlr', 'util', 'van', 'w/dr', 'w/sr']
-    #TODO: VEHICLE_TYPE_CODE_x
-    count = dataset.rdd.map(lambda x: (x[0], x[1]) if x[0].lower() in types else (x[0], 0)).values().sum()
+    # Top 50 most type codes
+    type_codes = ['PASSENGER VEHICLE', 'SPORT UTILITY / STATION WAGON', 'SEDAN', 'STATION WAGON/SPORT UTILITY VEHICLE', 'TAXI', 'PICK-UP TRUCK', 'VAN', 'OTHER', 'BUS', 'UNKNOWN', 'SMALL COM VEH(4 TIRES)', 'LARGE COM VEH(6 OR MORE TIRES)', 'LIVERY VEHICLE', 'MOTORCYCLE', 'BOX TRUCK', 'BICYCLE', 'BIKE', 'TRACTOR TRUCK DIESEL', 'AMBULANCE', 'TK', 'BU', 'CONVERTIBLE', 'DUMP', 'DS', 'FIRE TRUCK', '4 DR SEDAN', 'PK', 'VN', 'GARBAGE OR REFUSE', 'FLAT BED', 'CARRY ALL', 'TRACTOR TRUCK GASOLINE', 'CONV', 'TOW TRUCK / WRECKER', 'DP', 'AMBUL', 'AM', 'SCOOTER', 'FB', 'TANKER', 'CHASSIS CAB', 'MOPED', 'GG', 'MOTORSCOOTER', 'LL', 'TR', 'CONCRETE MIXER', 'REFRIGERATED VAN', 'TRAIL', 'TT']
+    count = dataset.rdd.map(lambda x: (x[0], x[1]) if (x[0].lower() in types or x[0].upper() in type_codes) else (x[0], 0)).values().sum()
     return count
 
 
@@ -228,7 +219,7 @@ def count_type_of_location(dataset):
                     'PHOTO/COPY', 'PRIVATE/PAROCHIAL SCHOOL', 'PUBLIC BUILDING', 'PUBLIC SCHOOL', 'RESIDENCE - APT. HOUSE', \
                     'RESIDENCE - PUBLIC HOUSING', 'RESIDENCE-HOUSE', 'RESTAURANT/DINER', 'SHOE', 'SMALL MERCHANT', 'SOCIAL CLUB/POLICY', 'STORAGE FACILITY', 'STORE UNCLASSIFIED', 'STREET', 'SYNAGOGUE', 
                     'TAXI (LIVERY LICENSED)', 'TAXI (YELLOW LICENSED)', 'TAXI/LIVERY (UNLICENSED)', 'TELECOMM. STORE', 'TRAMWAY', 'TRANSIT - NYC SUBWAY', 'TRANSIT FACILITY (OTHER)', 'TUNNEL', 'VARIETY STORE', 'VIDEO STORE']
-    count = dataset.rdd.map(lambda x: (x[0], x[1]) if (x[0].upper() in type_location else (x[0], 0)).values().sum()
+    count = dataset.rdd.map(lambda x: (x[0], x[1]) if x[0].upper() in type_location else (x[0], 0)).values().sum()
     return count
 
 
