@@ -1,5 +1,6 @@
 import json
 import re
+import os
 
 from dateutil import parser
 from pyspark import SparkContext
@@ -76,11 +77,11 @@ is_address_udf = F.udf(is_address, T.BooleanType())
 
 
 def count_address(dataset):  # 0.86531622832036702147027053269088
-    return dataset.filter(is_address_udf('value')).select(F.sum('count')).collect()[0][0]
+    return dataset.filter(is_address_udf('value')).select(F.sum('count')).collect()[0][0] or 0
 
 
 def count_street_name(dataset):  # 0.81533175864290315653854412712046
-    return dataset.filter(~is_address_udf('value')).select(F.sum('count')).collect()[0][0]
+    return dataset.filter(~is_address_udf('value')).select(F.sum('count')).collect()[0][0] or 0
 
 
 def count_city(dataset):    # most > 0.7, 0.6 x1, 0.5x1, 0.3x1
@@ -336,5 +337,10 @@ for filename in cluster:
     }
 
     # 2.5 dump updated dataset profile as json
-    with open('task2.{}.{}.json'.format(dataset_name, column_name), 'w') as f:
+    try:
+        os.mkdir('./task2/')
+    except Exception as e:
+        pass
+        
+    with open('./task2/{}.{}.json'.format(dataset_name, column_name), 'w') as f:
         json.dump(output, f, indent=2)
