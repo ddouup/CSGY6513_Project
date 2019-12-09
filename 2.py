@@ -8,6 +8,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
 from matplotlib.colors import is_color_like
+from collections import OrderedDict 
 
 try:
     spark
@@ -45,7 +46,7 @@ def count_person_name(dataset):
 def count_business_name(dataset):   # >0.9 x3, >0.6 x1, >0.5 x3, 0.47 x1
     # name_list = ['CORPORATION', 'INCORPORATED', 'LIMITED', 'CORP.', 'CORP', 'INC.', 'INC', 'LTD.', 'LTD', 'L.L.C.', 'LLC', 'L.C.', 'LC', 'P.C.', 'PC', 'P.L.L.C.', 'PLLC', 'L.L.P.', 'LLP', 'DPC', 'AIA', 'CONSULTING', 'ENGINEERING', 'ARCHITECTURE', 'ARCHITECTS', 'PE', 'RA', 'WORKSHOP', 'CONSTRUCTION', 'MANAGEMENT']
     name_list = ['SERVICE', 'LLC', 'SVCE', 'LIMO', 'TRANSPORTATION', 'LIMOUSINE', 'SERVICES', 'CARS', 'INC.', 'INC', 'C/S', 'ELEGANTE', 'EXPRESS', 'CLASS', 'JUNO', 'LINE', 'GO', 'COACH', 'LYFT-TRI-CITY', 'LEE', 'CORP.', 'TOP', 'TRANSIT', 'SEDAN', 'MAGNA', 'TIME', 'III', 'GLOBAL', 'U.S.A.', 'MINUTEMEN', 'WORLDWIDE', 'CARLINK', '2', 'VIEW', 'GREENRIDE', 'YORK', 'GTS', 'LAPUMA', 'ACROPOLIS', 'CLASSIC', 'JRIDE', 'SVC', 'CLUB', 'ADON', 'DEMAND', 'NURIDE', 'LAND', 'CLIQCAR', 'TRANS', 'UBER', 'LYFT', 'VIA', 'LEE/TRISTAR', 'JUNIORS', 'CITYROAD', 'DEBORAHLIMO', 'INDRIVER', 'RESTAURANT', 'CAFE', 'PIZZA', 'BAR', 'GRILL', 'BAKERY', 'KITCHEN', 'HOUSE', 'SHOP', 'CHICKEN', 'CUISINE', 'PIZZERIA', "DUNKIN'", 'LOUNGE', 'DINER', 'DELI', 'SUBWAY', 'SUSHI', 'GARDEN', 'FOOD', 'COFFEE', 'STARBUCKS', "MCDONALD'S", 'KING', 'TAVERN', 'II', 'BISTRO', 'MARKET', 'PUB', 'BAGELS', 'ROBBINS', 'TEA', 'THAI', 'POPEYES', 'PLACE', 'RAMEN', 'ROOM', 'STEAKHOUSE', "DOMINO'S", 'BURGER', 'RISTORANTE', 'HOTEL', 'PALACE', 'CREAM', 'GOURMET', 'WOK', 'BBQ', 'HALL', 'INN', 'NYC', 'CATERING', 'BROOKLYN', 'JUICE', 'BAGEL', 'BUFFET', 'TAQUERIA', 'COMPANY', 'FUSION', 'CO', 'NY', 'KFC', 'CENTER', 'PASTA', 'BURGERS', 'TASTE', 'CAFETERIA', 'GROCERY', 'HUT', 'QUOTIDIEN', 'NOODLE', 'SPOT', 'BREAD', 'SHACK', 'CHECKERS', 'VILLAGE', 'TRATTORIA', "WENDY'S", 'PARK', 'SALAD', 'DRAGON', 'CHINA', 'TACO', 'EAST', 'EATERY', 'CATERERS', 'BOX', 'CO.', 'SHOPPE', 'FACTORY', 'CORNER', 'CHINESE', 'DUMPLING', "JOHN'S", 'WINGS', 'SUPERMARKET', 'CORP', 'MANGER', 'DONUTS', 'FIKA', 'BANK', 'BENE', 'STREET', 'AVE', 'SCHOOL', 'FOODS', 'CANTINA', 'STEAK', 'ST', 'GENERAL', 'NOODLES', 'STORE', 'LLC.', 'ISLAND', 'YOGURT', 'AVE.', 'BROADWAY', 'BAGUETTE', 'GUYS', 'CORPORATION', 'CREPE', 'PRE-K', 'CAKES', 'MORE', '3)', 'WORKS', 'STATION', 'GROUP', 'CONSULTING', 'SOLUTIONS', 'CONSTRUCTION', 'ASSOCIATES', 'SYSTEMS', 'DESIGN', 'CONSULTANTS', 'PARTNERS', 'ARCHITECTS', 'SUPPLY', 'SUPPLIES', 'STUDIO', 'SECURITY', 'CONTRACTING', 'ENGINEERING', 'ENVIRONMENTAL', 'DEVELOPMENT', 'ENTERPRISES', 'MANAGEMENT', 'TECHNOLOGIES', 'COMMUNICATIONS', 'AGENCY', 'INDUSTRIES', 'MEDIA', 'ELECTRIC', 'PRODUCTS', 'ENGINEERS', 'TRAINING', 'ELECTRICAL', 'ARCHITECTURE', 'PC', 'ENERGY', 'CPA', 'BUILDERS', 'INTERNATIONAL', 'USA', 'ARTS', 'P.C.', 'PRINTING', 'PHOTOGRAPHY', 'INSTITUTE', 'ADVISORS', 'FIRM', 'FILMS', 'PRESS', 'SOCIAL', 'CONTROL', 'SIGNAGE', 'STAFFING', 'STEEL', 'SOLUTION', 'RECYCLING', 'SERIES', 'GLASS', 'MAINTENANCE', 'MARKETING', 'MINDS', 'KINDERDANCE', 'INK', 'INDUSTRIAL', 'PHARMACY', 'PLLC', 'GREEN', 'PR', 'GOOD', 'PRESERVATION', 'DIGITAL', 'PRINT', 'PRODUCTIONS', 'PROJECTS', 'PROMOTIONS', 'FLEET', 'STRATEGIES', 'EVENTS', 'ESTATE', 'RX', 'DIRECT', 'CLEAN', 'BAREBURGER', 'TRIBECA', 'HARLEM', 'LENWICH', 'TAVERNA', 'LANE', 'LADY', 'MILL', '28', 'FREDA', 'GREENE', "MAXWELL'S", 'MARGHERITA', 'BONE', 'DOG', 'ITALIANO', 'STAGECOACH', 'LION', 'STILL', 'BILBOQUET', 'BIANCA', 'CAPHE', 'SERAFINA', 'DELICATESSEN', 'DUMPLINGS', 'EAT', 'CUCINA', 'EATS', 'PEPE', 'ESQUINA', 'ESSENTIALS', 'CHELSEA', 'SALOON', "SARABETH'S", 'ONE', 'JONES', 'ARGENTINO', 'VERDE', 'WOLLENSKY', 'TACOS', 'VINO', 'ANDREA', 'BANTER', 'WEEKENDS', "O'GRADY'S", 'OFFICE', "OG'S", "WATSON'S", 'NOVITA', 'CAFÉ', 'SPICE', 'WALL', 'STAR', 'CITY', 'DELIGHT', 'HING', "CHOP'T", 'TORTILLAS', "LENNY'S", 'FALAFEL', 'COOKIES', 'CLEANERS', 'PIO', '1', 'BURRITO', 'LIQUORS', 'CENTRAL', 'MEXICANA', "SOPHIE'S", 'SICHUAN', 'SPIRITS', "JIMBO'S", 'TOASTIES', 'GINGER', 'EMPANADAS', 'CURRY', 'HEIGHTS', 'STOP', 'MEXICANO', 'LUNCHEONETTE', 'ASIAN', 'ROLL', 'MOONSTRUCK', 'KONG', 'FISH', 'E.', 'MEXICO', 'LEASHES', 'P.E.', 'PE', 'RA', "O'CONNOR", 'ARCHITECT', 'DPC', 'FORMICHELLA', 'P.C', 'LLP', 'ARCH.&ENG.', 'ROMAN', 'DP.C.', 'P.', 'PLLC.', 'DESIGNS', 'ENGINEER', 'R.A.', 'GAO', 'AS', 'LTD', 'AIA', 'PL', 'MOSTER', 'HUANG', 'J.K.DESIGN', 'ARCHITE', 'CROP', 'ADG', 'PLL', 'LOBUE', 'ODIGIE', 'CONCEPT', 'NB&C', 'TAN', 'S', 'SURVEYING', 'GUTERMAN', 'PC.', 'P', 'BUILD', 'RECREATION', 'GAMBA', 'CARMONA', 'PAPAY', 'VAA', 'ASSOC.', 'STUDIOS', 'VISIONACM', 'GENSLER', 'ENGINE', 'DOMANI', 'DESI', 'LL', 'PROFESSIONAL', 'STANTEC', 'ATLANTIC', 'ENG', 'DEMOLITION', 'D.P.C.', 'PLANNERS', 'NAN', 'SER', 'BOLLES', 'ECOPLUSDESIGN', 'ARUP', 'CON', 'WSP', 'LEO', 'CONSULT', 'REPUBLIC', 'AMATO', 'KAUFMAN', 'ZUCK']
-    count = dataset.rdd.map(lambda x: (x[0], x[1]) if re.sub(r' |,', '$', x[0]).split('$')[-1].upper() in name_list else (x[0], 0)).values().sum()
+    count = dataset.rdd.map(lambda x: (x[0], x[1]) if re.sub(r' |,', '$', str(x[0])).split('$')[-1].upper() in name_list else (x[0], 0)).values().sum()
     return count
 
 
@@ -257,40 +258,49 @@ def count_parks_or_playgrounds(dataset):    # 0.87 , 0.67, 0.46, 0.32       0.01
 
 ######################## Main ########################
 
-semantic_types = {
-    'person_name': count_person_name,
-    'business_name': count_business_name,
-    'phone_number': count_phone_number,
-    'address': count_address,
-    'street_name': count_street_name,
-    'city': count_city,
-    'neighborhood': count_neighborhood,
-    'coordinates': count_coordinates,
-    'zip': count_zip,
-    'borough': count_borough,
-    'school_name': count_school_name,
-    'color': count_color,
-    'car_make': count_car_make,
-    'city_agency': count_city_agency,
-    'areas_of_study': count_areas_of_study,
-    'subjects_in_school': count_subjects_in_school,
-    'university_names': count_university_names,
-    'websites': count_websites,
-    'building_classification': count_building_classification,
-    'vehicle_type': count_vehicle_type,
-    'type_of_location': count_type_of_location,
-    'parks_or_playgrounds': count_parks_or_playgrounds
-}
-
+semantic_types = [
+    ['phone_number', count_phone_number],
+    ['lat_lon_cord', count_coordinates],
+    ['zip_code', count_zip],
+    ['website', count_websites],
+    ['borough', count_borough],
+    ['building_classification', count_building_classification],
+    ['school_level', count_school_levels],
+    ['neighborhood', count_neighborhood],
+    ['area_of_study', count_areas_of_study],
+    ['subject_in_school', count_subjects_in_school],
+    ['address', count_address],
+    ['school_name', count_street_name],
+    ['city', count_city],
+    ['color', count_color],
+    ['car_make', count_car_make],
+    ['school_name', count_school_name],
+    ['city_agency', count_city_agency],
+    ['college_name', count_university_names],
+    ['vehicle_type', count_vehicle_type],
+    ['park_playground', count_parks_or_playground],
+    ['person_name', count_person_name],
+    ['business_name', count_business_name],
+]
 
 def profile_semantic(dataset):
-    confirm_threshold = 0.8 * dataset.select(F.sum('count')).collect()[0][0]
+    res = dataset.select(F.sum('count')).collect()[0][0]
+    invalid_words = ['UNSPECIFIED', 'UNKNOWN', '-']
+    dataset = dataset.filter(~dataset.value.like(invalid_words))
+    total = dataset.select(F.sum('count')).collect()[0][0]
+    confirm_threshold = 0.8 * total
+    minimum_threshold = 0.2 * total
     ret = []
-    for semantic_type in semantic_types:
-        count, label = semantic_types[semantic_type](dataset), None
-        ret.append({'semantic_type': semantic_type, 'label': label, 'count': count})
+
+    for semantic_type, is_semantic_type in semantic_types:
+        count, label = is_semantic_type(dataset), None
+        if count > minimum_threshold:
+            ret.append({'semantic_type': semantic_type, 'count': count})
+            res -= count
         if count > confirm_threshold:
             break
+    if res > 0:
+        ret.append({'semantic_type': 'other', 'count': res})
     return ret
 
 
