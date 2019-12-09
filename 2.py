@@ -250,7 +250,7 @@ def count_type_of_location(dataset):
     return count
 
 
-def count_parks_or_playgrounds(dataset):    # 0.87 , 0.67, 0.46, 0.32       0.01 for landmark      0.39 x2 for School_Name contains parks
+def count_parks_or_playground(dataset):    # 0.87 , 0.67, 0.46, 0.32       0.01 for landmark      0.39 x2 for School_Name contains parks
     words = ['park', 'playground', 'green', 'plots', 'square', 'plaza']
     count = dataset.rdd.map(lambda x: (x[0], x[1]) if x[0].split(" ")[-1].lower() in words else (x[0], 0)).values().sum()
     return count
