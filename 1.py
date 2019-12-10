@@ -30,6 +30,10 @@ def to_date_robust(x):
     return F.to_date(to_iso_string_udf(x))
 
 
+def escape_df_name(name):
+    return name if '.' not in name else f'`{name}`'
+
+
 class DateEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, datetime.date):
@@ -146,9 +150,9 @@ for filename, title in datasets.toLocalIterator():
     # 2.4.1 batch select at once
     batch_select = dataset.select([
         item for name in dataset.columns for item in (
-            F.count(F.when(~F.isnull(name if '.' not in name else f'`{name}`'), True)),
-            F.count(F.when(F.isnull(name if '.' not in name else f'`{name}`'), True)),
-            F.countDistinct(name if '.' not in name else f'`{name}`'),
+            F.count(F.when(~F.isnull(escape_df_name(name)), True)),
+            F.count(F.when(F.isnull(escape_df_name(name)), True)),
+            F.countDistinct(escape_df_name(name)),
         )
     ]).collect()[0]
     # 2.4.2 group result by chunk of size 3
@@ -157,7 +161,7 @@ for filename, title in datasets.toLocalIterator():
     # 2.5 create column profiles
     for column, select in zip(dataset.schema, batch_select_chunked):
         # column, select = next(zip(dataset.schema, batch_select_chunked))
-        name = column.name if '.' not in column.name else f'`{column.name}`'
+        name = escape_df_name(column.name)
         dataType = column.dataType
 
         # 2.5.1 use batch select
@@ -190,9 +194,9 @@ for filename, title in datasets.toLocalIterator():
                 to_date_robust(dataset[name]).alias('_date'),
             )
             cast_select = cast_dataset.select([
-                F.count(F.when(~F.isnull('_integer'), '_integer')),
-                F.count(F.when(~F.isnull('_double'), '_double')),
-                F.count(F.when(~F.isnull('_date'), '_date')),
+                F.count(F.when(~F.isnull('_integer'), 1)),
+                F.count(F.when(F.isnull('_integer') & ~F.isnull('_double'), 1)),
+                F.count(F.when(F.isnull('_double') & ~F.isnull('_date'), 1)),
             ]).collect()[0]
 
             if cast_select[0]:

@@ -56,13 +56,13 @@ ground_truth = {
     filename: {
         # label.filter(e => e)
         semantic_type
-        for semantic_type in labels if semantic_type is not ''
+        for semantic_type in labels if semantic_type
     }
     # for each line
-    for [filename, *labels] in csv.reader(
-        # each line = Row[0]
-        (x for [x] in spark.read.text('/user/ql1045/proj-in/DF_Label.csv').collect())
-    )
+    for [filename, *labels] in (spark.read.format('csv')
+                                .options(header='true', inferschema='true')
+                                .load('/user/ql1045/proj-in/DF_Label.csv')
+                                .toLocalIterator())
 }
 
 # 2. for each working dataset
