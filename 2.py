@@ -269,7 +269,7 @@ semantic_types = [
     ['area_of_study', count_areas_of_study],
     ['subject_in_school', count_subjects_in_school],
     ['address', count_address],
-    ['school_name', count_street_name],
+    ['street_name', count_street_name],
     ['city', count_city],
     ['color', count_color],
     ['car_make', count_car_make],

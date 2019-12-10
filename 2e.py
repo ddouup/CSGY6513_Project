@@ -70,7 +70,7 @@ ground_truth = {
 # 2. for each working dataset
 for filename in cluster:
     # filename = cluster[0]
-    [dataset_name, column_name] = filename.split('.')[0,2]
+    [dataset_name, column_name] = filename.split('.')[0:2]
     print(u'>> entering {}'.format(filename))
 
     # 2.1 load dataset
