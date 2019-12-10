@@ -57,7 +57,7 @@ cluster = json.loads(spark.read.text('/user/ql1045/proj-in/cluster2.txt').collec
 ground_truth = {
     filename: {
         # label.filter(e => e)
-        semantic_type
+        semantic_type.strip()
         for semantic_type in labels if semantic_type
     }
     # for each line
