@@ -178,8 +178,8 @@ for filename, title in datasets.toLocalIterator():
         assert column_output['number_distinct_values'] <= dataset_count
 
         # 2.5.2 fill frequent_values
-        column_output['frequent_values'] = [x for [x] in (dataset.groupBy(name).count()
-                                                          .orderBy(F.desc('count'))
+        column_output['frequent_values'] = [x for [x] in (dataset.groupBy(name).agg(F.count('*').alias('_count'))
+                                                          .orderBy(F.desc('_count'))
                                                           .select(name)
                                                           .take(5))]
 
