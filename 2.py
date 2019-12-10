@@ -52,7 +52,7 @@ def count_business_name(dataset):   # >0.9 x3, >0.6 x1, >0.5 x3, 0.47 x1
 
 def count_phone_number(dataset):
     phone_regex = re.compile('(\d{3}[-\.\s]??\d{3}[-\.\s]??\d{4}|\(\d{3}\)\s*\d{3}[-\.\s]??\d{4}|\d{3}[-\.\s]??\d{4})')
-    count = dataset.rdd.map(lambda x: (x[0], x[1]) if phone_regex.search(str(x[0])) else (x[0], 0)).values().sum()
+    count = dataset.rdd.map(lambda x: (x[0], x[1]) if phone_regex.match(str(x[0])) else (x[0], 0)).values().sum()
     return count
 
 
@@ -114,13 +114,13 @@ def count_neighborhood(dataset):    # most > 0.9, 0.8 x2
 
 def count_coordinates(dataset):
     coordinate_regex = re.compile('(\((-)?\d+(.+)?,( *)?(-)?\d+(.+)?\))')
-    count = dataset.rdd.map(lambda x: (x[0], x[1]) if coordinate_regex.search(str(x[0])) else (x[0], 0)).values().sum()
+    count = dataset.rdd.map(lambda x: (x[0], x[1]) if coordinate_regex.match(str(x[0])) else (x[0], 0)).values().sum()
     return count
 
 
 def count_zip(dataset):
     zip_regex = re.compile('^[0-9]{5}([- /]?[0-9]{4})?$')
-    count = dataset.rdd.map(lambda x: (x[0], x[1]) if zip_regex.search(str(x[0])) else (x[0], 0)).values().sum()
+    count = dataset.rdd.map(lambda x: (x[0], x[1]) if zip_regex.match(str(x[0])) else (x[0], 0)).values().sum()
     return count
 
 
