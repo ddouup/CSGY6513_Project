@@ -265,6 +265,7 @@ semantic_types = [
     ['borough', count_borough],
     ['building_classification', count_building_classification],
     ['school_level', count_school_levels],
+    ['location_type', count_type_of_location],
     ['neighborhood', count_neighborhood],
     ['area_of_study', count_areas_of_study],
     ['subject_in_school', count_subjects_in_school],
