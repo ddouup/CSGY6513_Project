@@ -80,7 +80,7 @@ for filename in cluster:
                .toDF('value', 'count'))
 
     # 2.2 count dataset rows
-    invalid_words = ['UNSPECIFIED', 'UNKNOWN', 'UNKNOW', '-', 'NA', 'N/A']
+    invalid_words = ['UNSPECIFIED', 'UNKNOWN', 'UNKNOW', '-', 'NA', 'N/A', '__________']
     dataset = dataset.filter(~dataset.value.isin(invalid_words))
     dataset_count = dataset.select(F.sum('count')).collect()[0][0]
 

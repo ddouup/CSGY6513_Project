@@ -285,7 +285,7 @@ semantic_types = [
 
 def profile_semantic(dataset):
     res = dataset.select(F.sum('count')).collect()[0][0]
-    invalid_words = ['UNSPECIFIED', 'UNKNOWN', 'UNKNOW', '-', 'NA', 'N/A']
+    invalid_words = ['UNSPECIFIED', 'UNKNOWN', 'UNKNOW', '-', 'NA', 'N/A', '__________']
     dataset = dataset.filter(~dataset.value.isin(invalid_words))
     total = dataset.select(F.sum('count')).collect()[0][0]
     confirm_threshold = 0.8 * total
