@@ -104,6 +104,6 @@ for filename in cluster:
     for semantic_type in ground_truth[filename]:
         truth_postive[semantic_type] += 1
 
-json.dumps(correct_postive)
-json.dumps(predict_postive)
-json.dumps(truth_postive)
+print(json.dumps(correct_postive))
+print(json.dumps(predict_postive))
+print(json.dumps(truth_postive))
