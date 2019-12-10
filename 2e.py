@@ -85,7 +85,7 @@ for filename in cluster:
     dataset_count = dataset.select(F.sum('count')).collect()[0][0]
 
     # 2.3 load the corresponding semantic profile
-    with open('task2.{}.json'.format(filename)) as f:
+    with open('task2/{}.json'.format(filename)) as f:
         output = json.load(f)
 
     # 2.4 exceeds threshold => attach label
