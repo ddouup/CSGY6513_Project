@@ -24,26 +24,28 @@ def filter_ground_truth(semantic_type):
 semantic_types_threshold = {
     'person_name': 0.5,
     'business_name': 0.5,
-    'phone_number': 0.5,
+    'phone_number': 0.9,
     'address': 0.5,
     'street_name': 0.5,
     'city': 0.5,
-    'neighborhood': 0.5,
-    'coordinates': 0.5,
-    'zip': 0.5,
-    'borough': 0.5,
-    'school_name': 0.5,
-    'color': 0.5,
-    'car_make': 0.5,
-    'city_agency': 0.5,
-    'areas_of_study': 0.5,
-    'subjects_in_school': 0.5,
+    'neighborhood': 0.8,
+    'coordinates': 0.9,
+    'zip': 0.9,
+    'borough': 0.9,
+    'school_name': 0.45,
+    'color': 0.7,
+    'car_make': 0.9,
+    'city_agency': 0.6,
+    'areas_of_study': 0.9,
+    'subjects_in_school': 0.9,
+    'school_level': 0.9,
     'university_names': 0.5,
-    'websites': 0.5,
-    'building_classification': 0.5,
+    'websites': 0.9,
+    'building_classification': 0.9,
     'vehicle_type': 0.5,
     'type_of_location': 0.5,
-    'parks_or_playgrounds': 0.5,
+    'parks_or_playgrounds': 0.3,
+    'other': 0.5,
 }
 
 correct_postive = {semantic_type: 0 for semantic_type in semantic_types_threshold}
@@ -68,7 +70,7 @@ ground_truth = {
 # 2. for each working dataset
 for filename in cluster:
     # filename = cluster[0]
-    [dataset_name, column_name] = filename.split('.').slice(2)
+    [dataset_name, column_name] = filename.split('.')[0,2]
     print(u'>> entering {}'.format(filename))
 
     # 2.1 load dataset
@@ -78,6 +80,8 @@ for filename in cluster:
                .toDF('value', 'count'))
 
     # 2.2 count dataset rows
+    invalid_words = ['UNSPECIFIED', 'UNKNOWN', 'UNKNOW', '-', 'NA', 'N/A']
+    dataset = dataset.filter(~dataset.value.isin(invalid_words))
     dataset_count = dataset.select(F.sum('count')).collect()[0][0]
 
     # 2.3 load the corresponding semantic profile
