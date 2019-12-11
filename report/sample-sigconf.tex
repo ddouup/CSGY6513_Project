@@ -124,8 +124,83 @@ In this project, we would first read the relevant reports and discuss the meanin
 Data profiling through a series of processes has currently become one of the best methods when analyzing huge amounts of data, and also strengthen our data quality. Nowadays, the lack of high data quality will lead to weakening or discontinued business intelligence, and even lost the trust of Information consumers.
 
 \section{Task 1}
-
-TODO
+In the first task, we profile a large amount of NYC open data as instructed. The framework we use is a powerful big data processing engine called Spark. To further ease our programming, we use the more recent dataframe API in replacement of the traditional RDD one. Dataframes enable named columns and simpler aggregations. It also employs catalyst optimizer to get a better execution plan than RDD. From the user's point of view, the interface is much like the widely used SQL which lowers the learning overhead. We load the dataset as a dataframe, let the framework decide a type for each column, and then dive into columns without a certain inference.
+\\\\
+We run our program on the NYU dumbo cluster. The first 200 instances finished in 2 hours, but the cluster soon got crowded as it is shared. During peak time the processing speed is about 10 instances per hour.
+\\\\
+We iterate through all filenames and titles as in the index file \verb|datasets.tsv| provided by the datasets. Integers and floats are trivial to detect, and spark can detect them quite precisely. The rest columns will be assigned type \verb|TEXT|. This is where more fine-tuned logic happens.
+\\\\
+For the \verb|data_types| attribute, we implement a \verb|profile_datatype| function to identify specific data types for columns containing the different type values. To identify the column with the value of type DATE, we turn to the existing library \verb|dateparser| for help. This Python library provides a highly adaptable parser module that handles loosely formatted date-time pretty well. As for numeric values, we will try to cast them into integer or float. If it succeeds, we will classify that value as integer or float.
+\\\\
+We also encountered some challenges and issues in the implementation of general profiling. As referred above, columns with \verb|date/time| are generally heterogeneous and are mixed up with values of multiple types. For task 1, one of the most common problems we face is handling dates and times. With the help of the aforementioned parser library, we can extract a well-formed representation from the \verb|date/time| text. With the help of \verb|to_iso_string| function, we can further convert it into a standard ISO form without ambiguity. This ISO string serves as a common language between the parser and spark. We can then perform more detailed analyses on the data.
+\\\\
+The next issue we face is about data quality. Dots are not legitimate symbols in spark columns, but some raw data contains dots as column names. The workaround we propose is to wrap such column names with extra quoting to prevent the spark from messing up different entities. 
+\\\\
+Next, some datasets have non-ASCII column names. Certain string manipulation such as regular expression, character count or JSON dumping may crash if without proper encoding. We have set up extra environments to convert everything into the correct representation.
+\\\\
+Our first implementation has acceptable speed, but soon it gets slower as the usage of the cluster multiplies. In the optimization process, we found that every python spark function call introduces some overhead since it involves python-java context switches. To speed up our code, we reduced such overheads by grouping as many queries together as possible. 
+\\\\
+The results of our profiling task is shown in table \ref{tk1tb}. Most common is \verb|TEXT| type as it is the fallback if no other more specific types can be assigned. The second on is \verb|INTEGER (LONG)| which is neither surprising because integer is an intuitive choice for enumeration or indexing.
+\\\\
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.45\textwidth]{num_of_each_datatype.jpg}
+    \caption{Number of Columns for Each Data Type}
+    \label{fig:mesh1}
+\end{figure}
+\begin{table}[h]
+    \centering
+    \begin{tabular}{ |c|c| }
+        \hline
+        type & columns containing this type \\
+        \hline
+        TEXT & 20478 \\
+        INTEGER (LONG) & 15919 \\
+        DATE/TIME & 1053 \\
+        REAL & 4503 \\
+        BOOLEAN & 70 \\
+        \hline
+    \end{tabular}
+    \caption{Task 1 statistics}
+    \label{tk1tb}
+\end{table}
+The most common types that co-occur in columns is \verb|INTEGER (LONG)|, \verb|TEXT|. This is possibly due to their large priori.
+\\\\
+\begin{table}[h]
+    \centering
+    \begin{tabular}{ |c|c| }
+        \hline
+        combination & count \\
+        \hline
+        INTEGER (LONG),TEXT & 5661 \\
+        DATE/TIME,TEXT & 933 \\
+        INTEGER (LONG),REAL,TEXT & 354 \\
+        DATE/TIME,INTEGER (LONG),REAL,TEXT & 74 \\
+        REAL,TEXT & 64 \\
+        DATE/TIME,REAL,TEXT & 17 \\
+        \hline
+    \end{tabular}
+    \caption{Task 1 co-occur}
+    \label{tk1cooc}
+\end{table}
+We find that common representation for missing values includes values as in table \ref{msvltb}. There are 7103 heterogeneous columns in total in the datasets.
+\\\\
+\begin{table}[h]
+    \centering
+    \begin{tabular}{ |c| }
+        \hline
+        UNSPECIFIED \\
+        UNKNOWN \\
+        UNKNOW \\
+        - \\
+        NA \\
+        N/A \\
+        \verb|__________| \\
+        \hline
+    \end{tabular}
+    \caption{Missing Values}
+    \label{msvltb}
+\end{table}
 
 \section{Task 2}
 
